@@ -1,0 +1,8 @@
+{
+    "sql": "select count(*) as total from empresa as t1 where t1.id_usuario = ?",
+    "params" : [
+        {
+            "ID_USUARIO" : "NUMBER"
+        }
+    ]
+}

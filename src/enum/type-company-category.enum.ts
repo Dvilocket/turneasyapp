@@ -1,0 +1,35 @@
+export enum TypeCompanyCategory {
+    PELUQUERIA = "peluqueria",
+    BARBERIA = "barberia",
+    ESTETICA_BELLEZA = "estetica_belleza",
+    SPA_BIENESTAR = "spa_bienestar",
+    CLINICA_MEDICA = "clinica_medica",
+    CONSULTORIO_DENTAL = "consultorio_dental",
+    FISIOTERAPIA = "fisioterapia",
+    GIMNASIO = "gimnasio",
+    ESTUDIO_TATUAJES = "estudio_tatuajes",
+    CENTRO_MASAJES = "centro_masajes",
+    OPTICA = "optica",
+    VETERINARIA = "veterinaria",
+    TALLER_MECANICO = "taller_mecanico",
+    LAVANDERIA = "lavanderia",
+    OTROS = "otros",
+};
+
+export const TypeCompanyCategoryList = [
+    TypeCompanyCategory.PELUQUERIA,
+    TypeCompanyCategory.BARBERIA,
+    TypeCompanyCategory.ESTETICA_BELLEZA,
+    TypeCompanyCategory.SPA_BIENESTAR,
+    TypeCompanyCategory.CLINICA_MEDICA,
+    TypeCompanyCategory.CONSULTORIO_DENTAL,
+    TypeCompanyCategory.FISIOTERAPIA,
+    TypeCompanyCategory.GIMNASIO,
+    TypeCompanyCategory.ESTUDIO_TATUAJES,
+    TypeCompanyCategory.CENTRO_MASAJES,
+    TypeCompanyCategory.OPTICA,
+    TypeCompanyCategory.VETERINARIA,
+    TypeCompanyCategory.TALLER_MECANICO,
+    TypeCompanyCategory.LAVANDERIA,
+    TypeCompanyCategory.OTROS
+];
