@@ -15,6 +15,9 @@ export class DbService implements OnModuleInit {
     private logger: Logger = new Logger('Db-Service-main');
     private client: Client;
 
+    static IS_NULL: string = 'IS NULL';
+    static NOW: string = 'NOW()';
+
     /**
      * Cuando se inicia el servicio
      * nos conectamos a la base de datos
@@ -99,10 +102,14 @@ export class DbService implements OnModuleInit {
     private organizeWhere(model: Object): string {
        let sqlWhere = Object.entries(model).map(([key, value]) => {
             if (key !== this.NAME_TABLE) {
-                if (typeof value === 'string') {
-                    return `${key}=\'${value}\'`;
+                if (value === DbService.IS_NULL) {
+                    return `${key} IS NULL`;
                 } else {
-                    return `${key}=${value}`;
+                    if (typeof value === 'string') {
+                        return `${key}=\'${value}\'`;
+                    } else {
+                        return `${key}=${value}`;
+                    } 
                 }
             }
        });
@@ -233,7 +240,7 @@ export class DbService implements OnModuleInit {
         if (modelSet.hasOwnProperty(this.NAME_TABLE) && this.hasProperties(modelSet) && this.hasProperties(modelWhere)) {
             
             let sql = `UPDATE ${modelSet[this.NAME_TABLE]}`;
-            sql += ` SET ${this.organizeWhere(modelSet).replace('AND', ',')}`;
+            sql += ` SET ${this.organizeWhere(modelSet).replaceAll('AND', ',')}`;
             sql += ` WHERE ${this.organizeWhere(modelWhere)}`;
 
             if (addReturning) {

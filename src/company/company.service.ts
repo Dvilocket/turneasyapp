@@ -1,11 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
-import { CreateCompanyDto, EditTotalCompanyDto } from './dto';
+import { CreateCompanyDto, EditCompanyDto, EditTotalCompanyDto, QueryParamCompanyDto } from './dto';
 import { ModelCompanyTotal } from 'src/model';
 import { TypeJson } from 'src/db/interfaces';
 import { Helper } from 'src/helper';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { Company } from './entities/company.entity';
+import { TypeUserGeneral } from 'src/enum';
 
 @Injectable()
 export class CompanyService {
@@ -124,5 +125,85 @@ export class CompanyService {
     }
 
     throw new HttpException('It is not possible to update the quantity, because the amount entered is less than the companies that are created',HttpStatus.CONFLICT);
+  }
+
+  /**
+   * Función que me permite obtener la lista de todas las empresas
+   * que estan registradas en la plataforma, esta misma funcion
+   * tiene query parametros para filtrar por limite, categoria
+   * y idUser si se requiere por una necesidad
+   * @param queryParamCompanyDto 
+   * @returns 
+   */
+  public async getCompanies(queryParamCompanyDto: QueryParamCompanyDto) {
+
+    const {limit = 100, category = null, idUser = null} = queryParamCompanyDto;
+
+    const modelSelect = new Company();
+    modelSelect.fecha_eliminacion = DbService.IS_NULL;
+    modelSelect.categoria = category ?? null;
+    modelSelect.id_usuario = idUser ?? null;
+
+    modelSelect.removeNullReferences();
+
+    let sql = this.dbService.select(modelSelect, true, limit);
+
+    let response = await this.dbService.executeQueryModel(sql);
+
+    return response.map((elemento: Company) => {
+
+      if (idUser) {
+        const {id_empresa, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, ...newObject} = elemento;
+        return newObject;
+      } else {
+        const {id_usuario, id_empresa, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, ...newObject} = elemento;
+        return newObject;
+      }
+    });
+  }
+
+  /**
+   * Función para editar una empresa, cambiarle las propiedades
+   * de la tabla de la base de datos
+   * @param editCompanyDto 
+   */
+  public async editCompany(editCompanyDto: EditCompanyDto, req: any) {
+    
+    if (Object.keys(editCompanyDto).length === 1) {
+      throw new HttpException('there is nothing to update', HttpStatus.NOT_FOUND);
+    }
+
+    let modelSelect = new Company();
+    
+    if (req.user.type_user === TypeUserGeneral.CLIENT) {
+    
+      modelSelect.id_usuario = req.user.id;
+
+    }
+    modelSelect.id_empresa = editCompanyDto.id_empresa;
+    modelSelect.removeNullReferences();
+
+    let sql = this.dbService.selectOne(modelSelect, true);
+    let response = await this.dbService.executeQueryModel(sql);
+
+    if (response.length === 0) {
+      throw new HttpException('The company does not correspond', HttpStatus.NOT_FOUND);
+    }
+    
+
+    const modelWhere = new Company();
+    modelWhere.id_empresa = editCompanyDto.id_empresa;
+    modelWhere.removeNullReferences();
+
+    editCompanyDto.id_empresa = null;
+    const modelSet = new Company(editCompanyDto);
+    modelSet.fecha_actualizacion = DbService.NOW;
+    modelSet.removeNullReferences();
+
+    sql = this.dbService.update(modelWhere, modelSet);
+
+    await this.dbService.executeQueryModel(sql);
+
+    throw new HttpException('the company was updated correctly', HttpStatus.OK);
   }
 }

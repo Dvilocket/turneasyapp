@@ -1,8 +1,8 @@
-import { Controller, Post, Body, UseInterceptors, UploadedFile, HttpException, HttpStatus, Request, Patch, Query, ParseIntPipe, Param} from '@nestjs/common';
+import { Controller, Post, Body, UseInterceptors, UploadedFile, HttpException, HttpStatus, Request, Patch, Query, ParseIntPipe, Param, Get} from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { Roles } from 'src/common/decorators';
 import { TypeUserGeneral } from 'src/enum';
-import { CreateCompanyDto, EditTotalCompanyDto } from './dto';
+import { CreateCompanyDto, EditCompanyDto, EditTotalCompanyDto, QueryParamCompanyDto } from './dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Helper } from 'src/helper';
@@ -33,7 +33,7 @@ export class CompanyController {
     }),
     DeleteFileOnErrorInterceptor,
   ) 
-  create(@Body() createCompanyDto: CreateCompanyDto, @UploadedFile() file: Express.Multer.File, @Request() req: any) {
+  public create(@Body() createCompanyDto: CreateCompanyDto, @UploadedFile() file: Express.Multer.File, @Request() req: any) {
     if (!file) {
       throw new HttpException('You must enter an image of the company', HttpStatus.BAD_REQUEST);
     }
@@ -52,5 +52,28 @@ export class CompanyController {
   @Patch('/total/:id')
   public editCompanyTotal(@Param('id', ParseIntPipe) id: number, @Body() editTotalCompanyDto: EditTotalCompanyDto) {
     return this.companyService.editCompanyTotal(id, editTotalCompanyDto);
+  }
+
+  /**
+   * Función para obtener todas las empresas registradas en
+   * la plataforma
+   * @param queryParamCompanyDto 
+   * @returns 
+   */
+  @Get()
+  public getCompanies(@Query() queryParamCompanyDto: QueryParamCompanyDto) {
+    return this.companyService.getCompanies(queryParamCompanyDto);
+  }
+
+  /**
+   * Pendiente implementar para actualizar una imagen
+   * @param editCompanyDto 
+   * @param req 
+   * @returns 
+   */
+  @Roles(TypeUserGeneral.CLIENT, TypeUserGeneral.ADMINISTRATOR)
+  @Patch() 
+  public editCompany(@Body() editCompanyDto: EditCompanyDto, @Request() req: any) {
+    return this.companyService.editCompany(editCompanyDto, req);
   }
 }
