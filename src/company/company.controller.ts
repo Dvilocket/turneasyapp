@@ -72,8 +72,17 @@ export class CompanyController {
    * @returns 
    */
   @Roles(TypeUserGeneral.CLIENT, TypeUserGeneral.ADMINISTRATOR)
-  @Patch() 
-  public editCompany(@Body() editCompanyDto: EditCompanyDto, @Request() req: any) {
-    return this.companyService.editCompany(editCompanyDto, req);
+  @Patch()
+  @UseInterceptors(
+    FileInterceptor('imagen', {
+      storage: diskStorage({
+        destination: Helper.PATH_TO_TEMPO_FOLDER,
+        filename: Helper.renameFile
+      })
+    }),
+    DeleteFileOnErrorInterceptor,
+  ) 
+  public editCompany(@Body() editCompanyDto: EditCompanyDto, @Request() req: any, @UploadedFile() file: Express.Multer.File) {
+    return this.companyService.editCompany(editCompanyDto, req, file);
   }
 }

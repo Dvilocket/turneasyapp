@@ -166,8 +166,10 @@ export class CompanyService {
    * Función para editar una empresa, cambiarle las propiedades
    * de la tabla de la base de datos
    * @param editCompanyDto 
+   * @param req 
+   * @param file 
    */
-  public async editCompany(editCompanyDto: EditCompanyDto, req: any) {
+  public async editCompany(editCompanyDto: EditCompanyDto, req: any, file: Express.Multer.File = null) {
     
     if (Object.keys(editCompanyDto).length === 1) {
       throw new HttpException('there is nothing to update', HttpStatus.NOT_FOUND);
@@ -190,14 +192,43 @@ export class CompanyService {
       throw new HttpException('The company does not correspond', HttpStatus.NOT_FOUND);
     }
     
-
+    
     const modelWhere = new Company();
     modelWhere.id_empresa = editCompanyDto.id_empresa;
     modelWhere.removeNullReferences();
 
+
+    const copyIdCompany = editCompanyDto.id_empresa;
+    
     editCompanyDto.id_empresa = null;
     const modelSet = new Company(editCompanyDto);
     modelSet.fecha_actualizacion = DbService.NOW;
+
+    if (file) {
+      
+      const modelSelectFile = new Company();
+      modelSelectFile.id_empresa = copyIdCompany;
+      modelSelectFile.removeNullReferences();
+
+      sql = this.dbService.selectOne(modelSelectFile, true);
+      response = await this.dbService.executeQueryModel(sql);
+
+      modelSelect = new Company(response[0]);
+
+      const [secureUrl, publicId, format] = await this.cloudinaryService.uploadImage(file);
+
+      if (!secureUrl || !publicId || !format) {
+        throw new HttpException('It is not possible to upload images at this time', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      await this.cloudinaryService.deleteImage(modelSelect.id_imagen);
+      
+      modelSet.url_imagen = secureUrl;
+      modelSet.id_imagen = publicId;
+      modelSet.formato_imagen = format;
+
+    }
+  
     modelSet.removeNullReferences();
 
     sql = this.dbService.update(modelWhere, modelSet);
