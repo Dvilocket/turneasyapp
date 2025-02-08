@@ -1,0 +1,11 @@
+{
+    "sql": "SELECT EXISTS (SELECT 1 FROM usuario AS t1 INNER JOIN empresa AS t2 ON t1.id_usuario = t2.id_usuario INNER JOIN servicio AS t3 ON t2.id_empresa = t3.id_empresa WHERE t2.id_usuario = ? AND t3.id_servicio = ?);",
+    "params" : [
+        {
+            "ID_USUARIO" : "NUMBER"
+        },
+        {
+            "ID_SERVICIO" : "NUMBER"
+        }
+    ]
+}

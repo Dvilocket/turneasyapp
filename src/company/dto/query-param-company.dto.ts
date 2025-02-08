@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { IsEnum, IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
 import { TypeCompanyCategory, TypeCompanyCategoryList } from "src/enum";
 
 export class QueryParamCompanyDto {
@@ -22,4 +22,42 @@ export class QueryParamCompanyDto {
         message: `allowed values ${TypeCompanyCategoryList}`
     })
     category?: TypeCompanyCategory
+
+    @IsOptional()
+    @IsBoolean()
+    @Transform(({ value }) => {
+        if (typeof value === 'boolean') {
+            return value;
+        }
+
+        if (typeof value === 'string') {
+            if (value.toLowerCase() === 'true') {
+                return true;
+            }
+            if (value.toLowerCase() === 'false') {
+                return false;
+            }
+        }
+        return undefined;
+    })
+    consultServices?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    @Transform(({value}) => {
+        if (typeof value === 'boolean') {
+            return value;
+        }
+
+        if (typeof value === 'string') {
+            if (value.toLowerCase() === 'true') {
+                return true;
+            }
+            if (value.toLowerCase() === 'false') {
+                return false;
+            }
+        }
+        return undefined;
+    })
+    servicesActives?: boolean;
 }

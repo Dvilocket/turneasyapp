@@ -7,6 +7,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Helper } from 'src/helper';
 import { DeleteFileOnErrorInterceptor } from 'src/common/interceptors';
+import { RequesExpressInterface } from 'src/interfaces/request-express.interface';
 
 @Controller('company')
 export class CompanyController {
@@ -33,7 +34,7 @@ export class CompanyController {
     }),
     DeleteFileOnErrorInterceptor,
   ) 
-  public create(@Body() createCompanyDto: CreateCompanyDto, @UploadedFile() file: Express.Multer.File, @Request() req: any) {
+  public create(@Body() createCompanyDto: CreateCompanyDto, @UploadedFile() file: Express.Multer.File, @Request() req: RequesExpressInterface) {
     if (!file) {
       throw new HttpException('You must enter an image of the company', HttpStatus.BAD_REQUEST);
     }
@@ -61,7 +62,8 @@ export class CompanyController {
    * @returns 
    */
   @Get()
-  public getCompanies(@Query() queryParamCompanyDto: QueryParamCompanyDto) {
+  public getCompanies(@Query() queryParamCompanyDto: QueryParamCompanyDto) {    
+    
     return this.companyService.getCompanies(queryParamCompanyDto);
   }
 

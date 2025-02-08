@@ -7,6 +7,8 @@ import { Helper } from 'src/helper';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { Company } from './entities/company.entity';
 import { TypeUserGeneral } from 'src/enum';
+import { RequesExpressInterface } from 'src/interfaces/request-express.interface';
+import { Service } from 'src/service/entities';
 
 @Injectable()
 export class CompanyService {
@@ -24,8 +26,7 @@ export class CompanyService {
    * @param file 
    * @returns 
    */
-  public async createCompany(createCompanyDto: CreateCompanyDto, file: Express.Multer.File, req: any) {
-  
+  public async createCompany(createCompanyDto: CreateCompanyDto, file: Express.Multer.File, req: RequesExpressInterface) {
     let modelSelectCompanyTotal = new ModelCompanyTotal();
     modelSelectCompanyTotal.id_usuario = req.user.id;
     modelSelectCompanyTotal.removeNullReferences();
@@ -137,7 +138,7 @@ export class CompanyService {
    */
   public async getCompanies(queryParamCompanyDto: QueryParamCompanyDto) {
 
-    const {limit = 100, category = null, idUser = null} = queryParamCompanyDto;
+    const {limit = 100, category = null, idUser = null, consultServices = true, servicesActives = true} = queryParamCompanyDto;
 
     const modelSelect = new Company();
     modelSelect.fecha_eliminacion = DbService.IS_NULL;
@@ -150,16 +151,54 @@ export class CompanyService {
 
     let response = await this.dbService.executeQueryModel(sql);
 
-    return response.map((elemento: Company) => {
 
-      if (idUser) {
-        const {id_empresa, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, ...newObject} = elemento;
-        return newObject;
-      } else {
-        const {id_usuario, id_empresa, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, ...newObject} = elemento;
-        return newObject;
+    const getService = async (idCompany: number) => {
+      
+      const modelService = new Service();
+      modelService.id_empresa = idCompany;
+      modelService.removeNullReferences();
+
+      const sql = this.dbService.select(modelService, true);
+      let responseSql = await this.dbService.executeQueryModel(sql);
+
+    
+      if (responseSql.length === 0) {
+        return [];
       }
-    });
+
+      //Aqui se hace el filtro que se debe hacer
+      responseSql = responseSql.filter((element: Service) => element.activo === servicesActives);
+
+      return responseSql.map((element: Service) => {
+        const {id_servicio, id_empresa, fecha_actualizacion, fecha_eliminacion, ...all} = element;
+        return all;
+      });
+    }
+
+    if (response.length > 0) {
+
+      const result = await Promise.all(
+        response.map(async (element: Company) => {
+          const {id_usuario, id_empresa, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, ...newObject} = element;          
+          
+          if (consultServices) {
+            return {
+              ...newObject,
+              servicios: await getService(id_empresa)
+            }
+          } else {
+
+            return {
+              ...newObject
+            }
+
+          }
+        })
+      );
+      return result;
+    } else {
+      return [];
+    }
   }
 
   /**
