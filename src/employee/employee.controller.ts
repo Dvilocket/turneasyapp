@@ -29,7 +29,7 @@ export class EmployeeController {
   public create(@Body(ParseEmployeePipe) createEmployeeDto: CreateEmployeeDto, @UploadedFile() file: Express.Multer.File, @Request() req: RequesExpressInterface) {
 
     if (!file) {
-      throw new HttpException('Hola te apesta la cola', HttpStatus.BAD_REQUEST);
+      throw new HttpException('you need to enter an image', HttpStatus.BAD_REQUEST);
     }
     
     return this.employeeService.create(createEmployeeDto, req, file);
