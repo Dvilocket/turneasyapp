@@ -9,11 +9,9 @@ export class DeleteFileOnErrorInterceptor implements NestInterceptor {
     
     const request = context.switchToHttp().getRequest();
     const file = request.file;
-
     
     return next.handle().pipe(
       catchError((error) => {
-
         if (file) {
           const filePath = `${Helper.PATH_TO_TEMPO_FOLDER}/${file.filename}`;
           if (fs.existsSync(filePath)) {
