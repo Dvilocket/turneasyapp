@@ -89,11 +89,11 @@ export class ServiceService {
    * que dichos servicios corresponde a la empresa de dicho
    * cliente, en cambio si es administrador puede editarlo
    * como el quiera
+   * @param id 
    * @param editServiceDto 
    * @param req 
-   * @returns 
    */
-  public async editServiceCompany(editServiceDto: EditServiceDto, req: RequesExpressInterface) {
+  public async editServiceCompany(id: number, editServiceDto: EditServiceDto, req: RequesExpressInterface) {
     
     if (req.user.type_user === TypeUserGeneral.CLIENT) {
 
@@ -105,7 +105,7 @@ export class ServiceService {
         }, 
         {
           name: 'ID_SERVICIO',
-          value: editServiceDto.id_servicio,
+          value: id,
           type: TypeJson.NUMBER
         }
       ]);
@@ -122,11 +122,13 @@ export class ServiceService {
     }  
   
     const modelWhere = new Service();
-    modelWhere.id_servicio = editServiceDto.id_servicio;
+    modelWhere.id_servicio = id;
     modelWhere.removeNullReferences();
 
     const modelSet = new Service(editServiceDto);
     modelSet.fecha_actualizacion = DbService.NOW;
+
+    
     modelSet.removeNullReferences();
 
     if (editServiceDto.hasOwnProperty('activo') && !editServiceDto.activo) {

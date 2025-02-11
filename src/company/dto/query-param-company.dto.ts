@@ -1,3 +1,4 @@
+import { BadRequestException } from "@nestjs/common";
 import { Transform } from "class-transformer";
 import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
 import { TypeCompanyCategory, TypeCompanyCategoryList } from "src/enum";
@@ -38,7 +39,7 @@ export class QueryParamCompanyDto {
                 return false;
             }
         }
-        return undefined;
+        throw new BadRequestException('The asset value must be a boolean or a string true or false');
     })
     consultServices?: boolean;
 
@@ -57,7 +58,7 @@ export class QueryParamCompanyDto {
                 return false;
             }
         }
-        return undefined;
+        throw new BadRequestException('The asset value must be a boolean or a string true or false');
     })
     servicesActives?: boolean;
 }

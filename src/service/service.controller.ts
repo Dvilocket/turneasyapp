@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Request, Res, Patch, Get} from '@nestjs/common';
+import { Controller, Post, Body, Request, Res, Patch, Get, Param, ParseIntPipe} from '@nestjs/common';
 import { ServiceService } from './service.service';
 
 import { Roles } from 'src/common/decorators';
@@ -31,8 +31,8 @@ export class ServiceController {
    * @returns 
    */
   @Roles(TypeUserGeneral.CLIENT, TypeUserGeneral.ADMINISTRATOR)
-  @Patch()
-  public editServiceCompany(@Body() editServiceDto: EditServiceDto, @Request() req: RequesExpressInterface) {
-    return this.serviceService.editServiceCompany(editServiceDto, req);
+  @Patch(':id')
+  public editServiceCompany(@Param('id', ParseIntPipe) id: number, @Body() editServiceDto: EditServiceDto, @Request() req: RequesExpressInterface) {  
+    return this.serviceService.editServiceCompany(id, editServiceDto, req);
   }
 }
