@@ -386,6 +386,7 @@ export class DbService implements OnModuleInit {
                     throw new HttpException(`file ${newJson} check json because it is not complying with the internal rule`, HttpStatus.BAD_REQUEST);
                 }
 
+
                 const searchKeyandYourValue = (key: string) => {
                     
                     let keysBase = [];
@@ -443,7 +444,7 @@ export class DbService implements OnModuleInit {
                 return jsonData.sql;
 
             } catch(error) {
-                this.logger.log(`Unable to read json file ${filePath}`);
+                this.logger.log(`Unable to read json file ${filePath}, error: ${error}`);
                 throw new HttpException('Unable to read json file', HttpStatus.BAD_REQUEST);
             }
         }

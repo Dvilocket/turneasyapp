@@ -30,7 +30,8 @@ export class CompanyController {
       storage: diskStorage({
         destination: Helper.PATH_TO_TEMPO_FOLDER,
         filename: Helper.renameFile
-      })
+      }),
+      fileFilter: Helper.checkExtensionFile
     }),
     DeleteFileOnErrorInterceptor,
   ) 
@@ -80,7 +81,8 @@ export class CompanyController {
       storage: diskStorage({
         destination: Helper.PATH_TO_TEMPO_FOLDER,
         filename: Helper.renameFile
-      })
+      }),
+      fileFilter: Helper.checkExtensionFile
     }),
     DeleteFileOnErrorInterceptor,
   ) 

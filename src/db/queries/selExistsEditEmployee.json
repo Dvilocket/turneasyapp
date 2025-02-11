@@ -1,0 +1,11 @@
+{
+    "sql": "SELECT 1 FROM usuario AS u WHERE u.id_usuario = ? AND EXISTS (SELECT 1 FROM empresa AS e WHERE e.id_usuario = u.id_usuario AND EXISTS (SELECT 1 FROM empleado AS emp WHERE emp.id_empresa = e.id_empresa AND emp.id_empleado = ?));",
+    "params" : [
+        {
+            "ID_USUARIO" : "NUMBER"
+        },
+        {
+            "ID_EMPLEADO" : "NUMBER"
+        }
+    ]
+}
