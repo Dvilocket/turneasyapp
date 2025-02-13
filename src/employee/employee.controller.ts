@@ -10,6 +10,7 @@ import { Helper } from 'src/helper';
 import { DeleteFileOnErrorInterceptor } from 'src/common/interceptors';
 import { RequesExpressInterface } from 'src/interfaces';
 import { ParseEmployeePipe } from './pipes';
+import { CreateEmployeeShiftDto } from './dto';
 
 @Controller('employee')
 export class EmployeeController {
@@ -67,5 +68,17 @@ export class EmployeeController {
   )
   public editEmployee(@Param('id', ParseIntPipe) id: number,  @Body() updateEmployeeDto: UpdateEmployeeDto, @Request() req: RequesExpressInterface, @UploadedFile() file: Express.Multer.File) {
     return this.employeeService.editEmployee(id, updateEmployeeDto, req, file);
+  }
+
+  /**
+   * Función para crear un turno
+   * @param id 
+   * @param req 
+   * @param createEmployeeShiftDto 
+   */
+  @Roles(TypeUserGeneral.CLIENT)
+  @Post('/shift/:id')
+  public createShift(@Param('id', ParseIntPipe) id: number, @Request() req: RequesExpressInterface, @Body() createEmployeeShiftDto: CreateEmployeeShiftDto) {
+    return this.employeeService.createShift(id, req, createEmployeeShiftDto);
   }
 }

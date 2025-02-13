@@ -8,6 +8,8 @@ import { RequesExpressInterface } from 'src/interfaces';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { TypeUserGeneral } from 'src/enum';
 import { TypeJson } from 'src/db/interfaces';
+import { CreateEmployeeShiftDto } from './dto';
+import { Helper } from 'src/helper';
 
 @Injectable()
 export class EmployeeService {
@@ -226,5 +228,76 @@ export class EmployeeService {
 
       throw new HttpException('The employee was successfully updated', HttpStatus.OK);
     
+  }
+
+  /**
+   * Funcion para obtener el id de las empresas
+   * que tiene un cliente
+   * @param idUser 
+   * @returns 
+   */
+  private async getIdCompany(idUser: number): Promise<number[]> {
+    
+    let modelCompany = new Company();
+    modelCompany.id_usuario = idUser;
+    modelCompany.removeNullReferences();
+
+    const sql = this.dbService.select(modelCompany, true);
+    const response = await this.dbService.executeQueryModel(sql);
+
+    if (response.length === 0) {
+      throw new HttpException('It is not possible to create the shifts because there is no company created', HttpStatus.BAD_REQUEST);
+    }
+    
+    const listIds = [];
+    for(const element of response) {
+      modelCompany = new Company(element)
+      if (modelCompany.id_empresa) {
+        listIds.push(modelCompany.id_empresa);
+      }
+    }
+    return listIds;
+  }
+
+  /**
+   * 
+   * @param id 
+   * @param req 
+   * @param createEmployeeShiftDto 
+   */
+  public async createShift(id: number, req: RequesExpressInterface, createEmployeeShiftDto:CreateEmployeeShiftDto) {
+    const idsCompany =  await this.getIdCompany(req.user.id);
+    
+    if (!idsCompany.includes(id)) {
+      throw new HttpException(`The company id ${id} is not associated with the client`, HttpStatus.BAD_REQUEST);
+    }
+
+    if(!Array.isArray(createEmployeeShiftDto.turnos)) {
+      throw new HttpException('Error, must be an array', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    for(const element of createEmployeeShiftDto.turnos) {
+      
+      if (!element.hasOwnProperty('id_empleado') || !Array.isArray(element.horario)) {
+        continue;
+      }
+
+      const model = new Employee();
+      model.id_empleado = element.id_empleado;
+      model.id_empresa = id;
+      model.removeNullReferences();
+
+      const sql = this.dbService.selectOne(model);
+      const response = await this.dbService.executeQueryModel(sql);
+
+      if (response.length === 0) {
+        throw new HttpException(`The employee id ${model.id_empleado} does not exist`, HttpStatus.BAD_REQUEST);
+      }
+
+
+      //TODO -> PENDIENTE IMPLEMENTAR LA TABLA DE TURNOS
+
+    }
+    return idsCompany;
   }
 }

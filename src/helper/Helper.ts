@@ -30,6 +30,4 @@ export class Helper {
             callback(new BadRequestException(`file type not allowed, the allowed files are as follows ${allowedExtensions}`), false);
         }
     }
-
-
 };
