@@ -10,6 +10,7 @@ import { TypeUserGeneral } from 'src/enum';
 import { TypeJson } from 'src/db/interfaces';
 import { CreateEmployeeShiftDto } from './dto';
 import { Helper } from 'src/helper';
+import { Shift } from './entities/shift.entity';
 
 @Injectable()
 export class EmployeeService {
@@ -282,22 +283,61 @@ export class EmployeeService {
         continue;
       }
 
-      const model = new Employee();
+      let model = new Employee();
       model.id_empleado = element.id_empleado;
       model.id_empresa = id;
       model.removeNullReferences();
 
-      const sql = this.dbService.selectOne(model);
-      const response = await this.dbService.executeQueryModel(sql);
+      let sql = this.dbService.selectOne(model, true);
+
+      let response = await this.dbService.executeQueryModel(sql);
 
       if (response.length === 0) {
         throw new HttpException(`The employee id ${model.id_empleado} does not exist`, HttpStatus.BAD_REQUEST);
       }
 
+      model = new Employee(response[0]);
+      model.removeNullReferences();
 
-      //TODO -> PENDIENTE IMPLEMENTAR LA TABLA DE TURNOS
+      if (!model.activo) {
+        throw new HttpException(`The employee id ${model.id_empleado} is not active`, HttpStatus.BAD_REQUEST);
+      }
+    
+      const modelShift = new Shift();
+      modelShift.id_empleado = element.id_empleado;
+      modelShift.removeNullReferences();
 
+      sql = this.dbService.selectOne(modelShift, true);
+      response = await this.dbService.executeQueryModel(sql);
+
+      if (response.length >  0) {
+        /**
+         * TODO PENDIENTE ESTA LOGICA CUANDO
+         * EL TURNO DEL USUAIRO YA ESTA
+         * INGRESADO
+         */
+        return 'falta implementarlo';
+
+      } else {
+
+        this.dbService.beginTransaction();
+
+        for(const schedule of element.horario) {
+          const modelInsert = new Shift(
+            {
+              ...schedule,
+              id_empleado: element.id_empleado
+            }
+          );
+          modelInsert.removeNullReferences();
+          sql = this.dbService.insert(modelInsert);
+
+          await this.dbService.executeQueryInTransaction(sql);
+
+        }
+        this.dbService.commitTransaction();
+      }
     }
-    return idsCompany;
+    throw new HttpException('records were entered correctly', HttpStatus.OK);
   }
 }
