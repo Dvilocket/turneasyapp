@@ -41,8 +41,8 @@ export class CreateEmployeeShiftDtoGeneral {
     @IsArray()
     @ValidateNested({each: true})
     @Type(() => CreateEmployeeShiftGeneral)
-    @IsUniqueDayWeek()
     @IsHoraInicioBeforeHoraFin()
+    @IsUniqueDayWeek()
     horario: CreateEmployeeShiftGeneral;
 }
 
