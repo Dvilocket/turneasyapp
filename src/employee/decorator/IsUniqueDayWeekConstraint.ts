@@ -12,7 +12,6 @@ export class IsUniqueDayWeekConstraint implements ValidatorConstraintInterface {
 
         for (const dayWeek of TypeDayWeekListGeneral) {
             const horariosDelDia = schedule.filter((element) => element.dia_semana === dayWeek);
-
             if (horariosDelDia.length >= 2 && this.thereIsOverlap(horariosDelDia)) {
                 return false; 
             }

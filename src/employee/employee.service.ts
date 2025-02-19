@@ -6,7 +6,7 @@ import { Employee } from './entities';
 import { Company } from 'src/company/entities/company.entity';
 import { RequesExpressInterface } from 'src/interfaces';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
-import { TypeUserGeneral } from 'src/enum';
+import { TypeDayWeek, TypeDayWeekListGeneral, TypeUserGeneral } from 'src/enum';
 import { TypeJson } from 'src/db/interfaces';
 import { CreateEmployeeShiftDto } from './dto';
 import { Helper } from 'src/helper';
@@ -307,20 +307,30 @@ export class EmployeeService {
       modelShift.id_empleado = element.id_empleado;
       modelShift.removeNullReferences();
 
-      sql = this.dbService.selectOne(modelShift, true);
+      sql = this.dbService.select(modelShift, true);
       response = await this.dbService.executeQueryModel(sql);
 
-      if (response.length >  0) {
-        /**
-         * TODO PENDIENTE ESTA LOGICA CUANDO
-         * EL TURNO DEL USUAIRO YA ESTA
-         * INGRESADO
-         */
-        return 'falta implementarlo';
 
-      } else {
+      if (response.length > 0) {
+        const daysWeekInDb: TypeDayWeek[] = this.getDaysWeekInDb(response);
+        let datainsert = this.doFilterSchedule(daysWeekInDb, element.horario, response);
+      
+        const newData = response.map((element:any) => {
+          const model = new Shift(element);
+          model.removeNullReferences();
+          model.formatTime();
+          return {
+            dia_semana: model.dia_semana,
+            hora_inicio: model.hora_inicio,
+            hora_fin: model.hora_fin
+          };
+        })
 
-        this.dbService.beginTransaction();
+        this.dataIsSwapped([...datainsert, ...newData]);
+        element.horario = datainsert;
+      }
+
+      this.dbService.beginTransaction();
 
         for(const schedule of element.horario) {
           const modelInsert = new Shift(
@@ -336,8 +346,146 @@ export class EmployeeService {
 
         }
         this.dbService.commitTransaction();
-      }
     }
     throw new HttpException('records were entered correctly', HttpStatus.OK);
+  }
+
+  /**
+   * Función para obtener los dias de la semana del horario de un empleado
+   * en especifico
+   * @param response 
+   * @returns 
+   */
+  private getDaysWeekInDb(response: any[]): TypeDayWeek[] {
+    const list = [];
+    for(const element of response) {
+      const model = new Shift(element);
+      model.removeNullReferences();
+      if (!list.includes(model.dia_semana)) {
+        list.push(model.dia_semana);
+      }
+    }
+    return list
+  }
+
+  /**
+   * Funcion para filtrar un horario, es decir sacarle los repetidos
+   * pues no hay necesidad de ingresar nuevamente esos repetidos
+   * @param weekInDb 
+   * @param scheduleClient 
+   * @param scheduleDb 
+   * @returns 
+   */
+  private doFilterSchedule(weekInDb: TypeDayWeek[], scheduleClient: any[], scheduleDb: any[]) {
+    const allowedList = [];
+    const repeatList = [];
+
+    for(const element of scheduleClient) {
+      if (!weekInDb.includes(element.dia_semana)) {
+        allowedList.push(element);
+        continue;
+      }
+      repeatList.push(element);
+    }
+
+    const removeRepeat = () => {
+
+      for(const day of weekInDb) {
+
+        let elementDb = [];
+        let elementClient = [];
+
+        for(const element of scheduleClient) {
+          if (element.dia_semana === day) {
+            elementClient.push(element);
+          }
+        }
+
+        for(const element of scheduleDb) {
+          const model = new Shift(element);
+          model.removeNullReferences();
+          model.formatTime();
+
+          if (model.dia_semana === day) {
+            elementDb.push({
+              dia_semana: model.dia_semana,
+              hora_inicio: model.hora_inicio,
+              hora_fin: model.hora_fin
+            })
+          }
+        }
+        
+        if (elementDb.length > 0 && elementClient.length > 0) {
+          for(const elementA of elementClient) {
+            let exists = false;
+            for(const elementB of elementDb) {
+              if (elementA.dia_semana === elementB.dia_semana && elementA.hora_inicio === elementB.hora_inicio && elementA.hora_fin === elementB.hora_fin) {
+                exists = true;
+                break;
+              }
+            }
+            if (!exists) {
+              allowedList.push(elementA);
+            }
+          }
+        }
+
+      }
+    }
+    if (repeatList.length > 0) {
+      removeRepeat();
+    }
+    
+    if (allowedList.length === 0) {
+      throw new HttpException('These schedules are already in the database', HttpStatus.BAD_REQUEST);
+    }
+    return allowedList;
+  }
+
+  /**
+   * Funcion para comprobar que si un empleado ingresa un horario
+   * y ya tiene horarios en base de datos, pues se debe revisar
+   * que no vayan a solapar los horarios existentes, esto se hace
+   * para eivtar datos errroneos
+   * @param schedule 
+   */
+  private dataIsSwapped(schedule: any[]) {
+    for(const dayWeek of TypeDayWeekListGeneral) {
+      const list = schedule.filter((element) => element.dia_semana === dayWeek);
+      if (list.length >= 2 && this.thereIsOverLap(list)) {
+        throw new HttpException('It is not possible to enter the schedules because a schedule is overlapping with one in the database, please check the schedules', HttpStatus.BAD_REQUEST);
+      }
+    }
+  }
+
+  /**
+   * Funcion para comprobar si los horarios se solapan
+   * @param schedules 
+   * @returns 
+   */
+  private thereIsOverLap(schedules: any[]): boolean {
+    for(let i = 0; i < schedules.length; i++) {
+      for(let j = i + 1; j < schedules.length; j++) {
+        const inicio1 = this.convertHourToMinute(schedules[i].hora_inicio);
+        const fin1 = this.convertHourToMinute(schedules[i].hora_fin);
+        const inicio2 = this.convertHourToMinute(schedules[j].hora_inicio);
+        const fin2 = this.convertHourToMinute(schedules[j].hora_fin);
+
+        if (inicio1 < fin2 && fin1 > inicio2) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Funcion para convertir de horas a minutos
+   * @param hour 
+   * @returns 
+   */
+  private convertHourToMinute(hour: string): number {
+      const [h, m] = hour.split(':').map(Number);
+      return h * 60 + m;
   }
 }
