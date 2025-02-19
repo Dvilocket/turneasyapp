@@ -266,6 +266,27 @@ export class DbService implements OnModuleInit {
         }
     }
 
+
+    /**
+     * Función para insertar con conflicto
+     * @param model 
+     * @param restrictionsName 
+     * @returns 
+     */
+    public insertOnConflict(model: Object, restrictionsName: boolean = false): string {
+        if (model.hasOwnProperty(this.NAME_TABLE)) {
+            const [keysInsert, valuesInsert] = this.organizeInsert(model);
+            let sql = `INSERT INTO ${model[this.NAME_TABLE]} ${keysInsert} VALUES  ${valuesInsert}`;
+            
+            if (!restrictionsName) {
+                return sql += ` ON CONFLICT DO NOTHING;`;
+            }
+
+            return sql += ` ON CONFLICT ${keysInsert} DO NOTHING`;
+        }
+    }
+
+
     /**
      * Funcion para ejecutar una sql que genera un modelo
      * devuelve el resultado de la consulta

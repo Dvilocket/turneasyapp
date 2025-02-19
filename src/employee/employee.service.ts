@@ -340,7 +340,8 @@ export class EmployeeService {
             }
           );
           modelInsert.removeNullReferences();
-          sql = this.dbService.insert(modelInsert);
+
+          sql = this.dbService.insertOnConflict(modelInsert, true);
 
           await this.dbService.executeQueryInTransaction(sql);
 
