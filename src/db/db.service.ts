@@ -370,7 +370,7 @@ export class DbService implements OnModuleInit {
      * @param nameJson 
      * @param params 
      */
-    public queryStringJson(nameJson:string, params: JsonQueryInterface[]) {
+    public queryStringJson(nameJson:string, params: JsonQueryInterface[] = null) {
         
         if (nameJson) {
 
@@ -401,7 +401,7 @@ export class DbService implements OnModuleInit {
                 const jsonData: JsonInterface = JSON.parse(data);
 
                 const totalCharacterQuestion = [...jsonData.sql].filter((element: string) => element === '?').length;
-
+                
                 if (jsonData.params && totalCharacterQuestion <= 0 || jsonData.params && totalCharacterQuestion !== params.length) {
                     this.logger.log(`file ${newJson} check json because it is not complying with the internal rule`);
                     throw new HttpException(`file ${newJson} check json because it is not complying with the internal rule`, HttpStatus.BAD_REQUEST);

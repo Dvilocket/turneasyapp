@@ -1,4 +1,4 @@
-import { Controller, Request, Post, Body, UseInterceptors, UploadedFile, HttpException, HttpStatus, Patch, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Request, Post, Body, UseInterceptors, UploadedFile, HttpException, HttpStatus, Patch, Param, ParseIntPipe, Get } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -80,5 +80,11 @@ export class EmployeeController {
   @Post('/shift/:id')
   public createShift(@Param('id', ParseIntPipe) id: number, @Request() req: RequesExpressInterface, @Body() createEmployeeShiftDto: CreateEmployeeShiftDto) {
     return this.employeeService.createShift(id, req, createEmployeeShiftDto);
+  }
+
+  @Roles(TypeUserGeneral.CLIENT, TypeUserGeneral.ADMINISTRATOR)
+  @Get('/shift')
+  public getShift(@Request() req: RequesExpressInterface) {
+    return this.employeeService.getShift(req);
   }
 }

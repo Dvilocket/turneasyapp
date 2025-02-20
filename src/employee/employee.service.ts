@@ -6,11 +6,12 @@ import { Employee } from './entities';
 import { Company } from 'src/company/entities/company.entity';
 import { RequesExpressInterface } from 'src/interfaces';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
-import { TypeDayWeek, TypeDayWeekListGeneral, TypeUserGeneral } from 'src/enum';
+import { TypeDayWeek, TypeDayWeekListGeneral, TypeUser, TypeUserGeneral } from 'src/enum';
 import { TypeJson } from 'src/db/interfaces';
 import { CreateEmployeeShiftDto } from './dto';
 import { Helper } from 'src/helper';
 import { Shift } from './entities/shift.entity';
+import { ResponseShiftJsonInterface, ShiftJsonInterface } from './interfaces';
 
 @Injectable()
 export class EmployeeService {
@@ -247,7 +248,7 @@ export class EmployeeService {
     const response = await this.dbService.executeQueryModel(sql);
 
     if (response.length === 0) {
-      throw new HttpException('It is not possible to create the shifts because there is no company created', HttpStatus.BAD_REQUEST);
+      throw new HttpException('A company has not been created', HttpStatus.BAD_REQUEST);
     }
     
     const listIds = [];
@@ -309,7 +310,6 @@ export class EmployeeService {
 
       sql = this.dbService.select(modelShift, true);
       response = await this.dbService.executeQueryModel(sql);
-
 
       if (response.length > 0) {
         const daysWeekInDb: TypeDayWeek[] = this.getDaysWeekInDb(response);
@@ -488,5 +488,128 @@ export class EmployeeService {
   private convertHourToMinute(hour: string): number {
       const [h, m] = hour.split(':').map(Number);
       return h * 60 + m;
+  }
+
+  /**
+   * Funcion para mostrar los horarios de los empleados
+   * con su respectiva empresa, muestra todos los horarios
+   * que lo comprenden, tiene en cuenta si es adminsitrador
+   * o cliente
+   * @param req 
+   * @returns 
+   */
+  public async getShift(req: RequesExpressInterface) {
+
+    let sql = '';
+    if (req.user.type_user === TypeUserGeneral.CLIENT) {
+      const idsCompany =  await this.getIdCompany(req.user.id);
+
+      sql = this.dbService.queryStringJson('selShift', [
+        {
+          name: 'ID_USUARIO',
+          value: idsCompany.join(','),
+          type: TypeJson.STRING
+        }
+      ]);
+    } else {
+      sql = this.dbService.queryStringJson('selShiftAdministrator');
+    }
+
+    let response: ResponseShiftJsonInterface[] = await this.dbService.executeQueryModel(sql);
+
+    if (response.length === 0) {
+      throw new HttpException('There is no employee containing shifts', HttpStatus.NO_CONTENT);
+    }
+
+    const responseJson: ShiftJsonInterface[] = [];
+
+    const existsCompanyJson = (id: number) => {
+      for(const element of responseJson) {
+        if (element.id_empresa === id) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    const addCompanyJson = (element: ResponseShiftJsonInterface) => {
+      responseJson.push(
+        {
+          id_empresa: element.id_empresa,
+          nombre: element.nombre,
+          direccion: element.direccion,
+          empleados : [
+            {
+              id_empleado: element.id_empleado,
+              nombre_empleado: element.nombre_empleado,
+              correo_empleado: element.correo_empleado,
+              telefono_empleado: element.telefono_empleado,
+              imagen_empleado: element.imagen_empleado,
+              horarios: [
+                {
+                  dia_semana: element.dia_semana,
+                  hora_inicio: element.hora_inicio,
+                  hora_fin: element.hora_fin,
+                  fecha_creacion: element.fecha_creacion
+                }
+              ]
+            }
+          ]
+        }
+      );
+    }
+
+    const getCompanyByIdJson = (id: number) => {
+      for(const element of responseJson) {
+        if (element.id_empresa === id) {
+          return element;
+        }
+      }
+    }
+
+    const doProccessJson = (element: ResponseShiftJsonInterface) => {
+      const elementJson = getCompanyByIdJson(element.id_empresa);
+      for(const employee of elementJson.empleados) {
+        if (employee.id_empleado === element.id_empleado) {
+            employee.horarios.push(
+              {
+                dia_semana: element.dia_semana,
+                hora_inicio: element.hora_inicio,
+                hora_fin: element.hora_fin,
+                fecha_creacion: element.fecha_creacion
+              }
+            )
+          return;
+        }
+      }
+      elementJson.empleados.push({
+        id_empleado : element.id_empleado,
+        nombre_empleado: element.nombre_empleado,
+        correo_empleado: element.correo_empleado,
+        telefono_empleado: element.telefono_empleado,
+        imagen_empleado: element.imagen_empleado,
+        horarios: [
+          {
+            dia_semana: element.dia_semana,
+            hora_inicio: element.hora_inicio,
+            hora_fin: element.hora_fin,
+            fecha_creacion: element.fecha_creacion
+          }
+        ]
+      })
+    }
+
+    for(const element of response) {
+      if (responseJson.length === 0) {
+        addCompanyJson(element);
+      } else {
+        if (!existsCompanyJson(element.id_empresa)) {
+          addCompanyJson(element);
+          continue;
+        }
+        doProccessJson(element)
+      }
+    }
+    return responseJson;
   }
 }
