@@ -20,26 +20,4 @@ export class Shift extends ModelBase {
             super.loadModel();
         }
     }
-
-    /**
-     * metodo publico para que se pueda formatear la hora
-     */
-    public formatTime() {
-        if (this.hora_inicio && this.hora_fin) {
-            this.hora_inicio = this.format(this.hora_inicio);
-            this.hora_fin = this.format(this.hora_fin);
-        }
-    }
-
-    /**
-     * Metodo privado para formatear la hora en el formato
-     * deseado
-     * @param hora 
-     * @returns 
-     */
-    private format(hora: string): string {
-        if (!hora) return null;
-        const [horaCompleta, minutos] = hora.split(':');
-        return `${parseInt(horaCompleta, 10)}:${minutos}`;
-    }
 }

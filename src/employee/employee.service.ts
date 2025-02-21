@@ -278,8 +278,48 @@ export class EmployeeService {
       throw new HttpException('Error, must be an array', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    for(const element of createEmployeeShiftDto.turnos) {
+
+    let modelCompanySelect = new Company();
+    modelCompanySelect.id_empresa = id;
+    modelCompanySelect.removeNullReferences();
+
+    const sqlModelCompanySelect = this.dbService.select(modelCompanySelect, true);
+    const responseModelCompanySelect = await this.dbService.executeQueryModel(sqlModelCompanySelect);
+
+    modelCompanySelect = new Company(responseModelCompanySelect[0]);
+    modelCompanySelect.formatHour();
+
+
+    const hourOpen = this.convertHourToMinute(modelCompanySelect.hora_apertura);
+    const hourExit = this.convertHourToMinute(modelCompanySelect.hora_cierre);
+
+    /**
+     * Funcion es para comprobar que los horarios ingresados 
+     * pertenecen al horario establecido por la empresa,
+     * faltaba tener en cuenta esa funcionalidad
+     * @param shedule 
+     */
+    const checkOpeningTime = (shedule: any[]) => {
       
+      for(const element1 of shedule) {
+        
+        for(const element2 of element1.horario) {
+          
+          let hourStart = this.convertHourToMinute(element2.hora_inicio);
+          let hourEnd = this.convertHourToMinute(element2.hora_fin);
+
+          if (hourStart < hourOpen || hourEnd > hourExit) {
+            const message = `The time entered ${element2.hora_inicio}, ${element2.hora_fin} does not comply with the company's schedules ${modelCompanySelect.hora_apertura}, ${modelCompanySelect.hora_cierre}`;
+            throw new HttpException(message, HttpStatus.BAD_REQUEST);
+          }
+        }
+      }
+    };
+
+    checkOpeningTime(createEmployeeShiftDto.turnos);
+
+    for(const element of createEmployeeShiftDto.turnos) {
+
       if (!element.hasOwnProperty('id_empleado') || !Array.isArray(element.horario)) {
         continue;
       }
@@ -318,7 +358,7 @@ export class EmployeeService {
         const newData = response.map((element:any) => {
           const model = new Shift(element);
           model.removeNullReferences();
-          model.formatTime();
+          model.formatHour();
           return {
             dia_semana: model.dia_semana,
             hora_inicio: model.hora_inicio,
@@ -405,7 +445,7 @@ export class EmployeeService {
         for(const element of scheduleDb) {
           const model = new Shift(element);
           model.removeNullReferences();
-          model.formatTime();
+          model.formatHour();
 
           if (model.dia_semana === day) {
             elementDb.push({

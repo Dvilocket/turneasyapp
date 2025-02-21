@@ -70,4 +70,31 @@ export class ModelBase {
             });
         }
     }
+
+    /**
+     * Funcion para formatear la hora en el formato
+     * que lo manejra la aplicacion
+     */
+    public formatHour() {
+        const keys = [
+            'hora_apertura',
+            'hora_cierre'
+        ];
+        Object.entries(this.#reference).forEach(([key, value]) => {
+            if (keys.includes(key) && typeof value === 'string') {
+                this.#reference[key] = this.format(value);
+            }
+        });
+    }
+
+    /**
+     * Funcion que hace el calculo para formatear la hora
+     * @param hour 
+     * @returns 
+     */
+    private format(hour: string): string {
+        if (!hour) return null;
+        const [fullHour, minutes] = hour.split(':');
+        return `${parseInt(fullHour, 10)}:${minutes}`;
+    }
 }
