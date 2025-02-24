@@ -1,6 +1,7 @@
 import { Transform } from "class-transformer";
 import { IsInt, IsNotEmpty, IsString, Matches, Min } from "class-validator";
 import { IsWithin30Days } from "../decorator/IsWithin30DaysConstraint";
+import { IsTimeGreaterOrEqualCurrent } from "../decorator/IsTimeGreaterOrEqualCurrentConstraint";
 
 export class CreateAppointmentDto {
     @IsInt()
@@ -36,4 +37,12 @@ export class CreateAppointmentDto {
     })
     @IsWithin30Days()
     fecha_servicio: string;
+
+    @IsString()
+    @IsNotEmpty()
+    @Matches(/^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/, {
+        message: 'La hora debe tener el formato HH:mm (por ejemplo, 9:30, 10:00, 23:00)',
+    })
+    @IsTimeGreaterOrEqualCurrent()
+    hora_servicio: string;
 }

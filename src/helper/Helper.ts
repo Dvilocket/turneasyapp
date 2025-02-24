@@ -44,4 +44,17 @@ export class Helper {
         return TypeDayWeekListGeneral[date.getDay()];
 
     }
+
+    static addMinutes(hour: string, minuteToAdd: number) {
+        const [hours, minutes] = hour.split(':').map(Number);
+        const date = new Date();
+        date.setHours(hours, minutes, 0, 0);
+
+        date.setMinutes(date.getMinutes() + minuteToAdd);
+
+        const newHour = date.getHours().toString().padStart(2, '0');
+        const newMinutes = date.getMinutes().toString().padStart(2, '0');
+
+        return `${newHour}:${newMinutes}`;
+    }
 };
