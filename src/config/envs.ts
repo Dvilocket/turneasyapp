@@ -19,6 +19,7 @@ interface EnvVars {
     CLOUDINARY_CLOUD_NAME: string;
     CLOUDINARY_API_KEY: string;
     CLOUDINARY_API_SECRET: string;
+    DAYS_ALLOWED_ON_APPOINTMENT: number;
 }
 
 const envsSchema = joi.object({
@@ -38,7 +39,8 @@ const envsSchema = joi.object({
     USER_MASTER_PHONE: joi.string().required(),
     CLOUDINARY_CLOUD_NAME: joi.string().required(),
     CLOUDINARY_API_KEY: joi.string().required(),
-    CLOUDINARY_API_SECRET: joi.string().required()
+    CLOUDINARY_API_SECRET: joi.string().required(),
+    DAYS_ALLOWED_ON_APPOINTMENT: joi.string().required()
 }).unknown(true);
 
 const {error, value} = envsSchema.validate({
@@ -68,5 +70,6 @@ export const envs = {
     user_master_phone: envVars.USER_MASTER_PHONE,
     cloudinary_cloud_name: envVars.CLOUDINARY_CLOUD_NAME,
     cloudinary_api_key: envVars.CLOUDINARY_API_KEY,
-    cloudinary_api_secret: envVars.CLOUDINARY_API_SECRET
+    cloudinary_api_secret: envVars.CLOUDINARY_API_SECRET,
+    days_allowed_on_appointment: envVars.DAYS_ALLOWED_ON_APPOINTMENT
 };

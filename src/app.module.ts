@@ -5,8 +5,9 @@ import { CompanyModule } from './company/company.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { ServiceModule } from './service/service.module';
 import { EmployeeModule } from './employee/employee.module';
+import { AppointmentModule } from './appointment/appointment.module';
 @Module({
-  imports: [AuthModule, CompanyModule, CloudinaryModule, ServiceModule, EmployeeModule],
+  imports: [AuthModule, CompanyModule, CloudinaryModule, ServiceModule, EmployeeModule, AppointmentModule],
   controllers: [],
   providers: [DbService],
 })

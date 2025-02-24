@@ -9,11 +9,11 @@ export enum TypeDayWeek {
 }
 
 export const TypeDayWeekListGeneral = [
+    TypeDayWeek.DOMINGO,
     TypeDayWeek.LUNES,
     TypeDayWeek.MARTES,
     TypeDayWeek.MIERCOLES,
     TypeDayWeek.JUEVES,
     TypeDayWeek.VIERNES,
     TypeDayWeek.SABADO,
-    TypeDayWeek.DOMINGO
 ]

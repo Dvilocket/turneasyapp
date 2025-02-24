@@ -1,5 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import { extname, join } from "path";
+import { TypeDayWeek, TypeDayWeekListGeneral } from "src/enum";
 
 export class Helper {
     
@@ -29,5 +30,18 @@ export class Helper {
             //Rechazamos el archivo
             callback(new BadRequestException(`file type not allowed, the allowed files are as follows ${allowedExtensions}`), false);
         }
+    }
+
+    static getDayWeek(dateString: string) {
+        const [yearString, monthString, dayString] = dateString.split('-');
+
+        const yearNumber = Number(yearString);
+        const monthNumber = Number(monthString);
+        const dayNumber = Number(dayString);
+
+        const date = new Date(yearNumber, monthNumber - 1, dayNumber);
+
+        return TypeDayWeekListGeneral[date.getDay()];
+
     }
 };
