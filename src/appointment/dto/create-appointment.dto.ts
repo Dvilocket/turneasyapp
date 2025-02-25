@@ -1,5 +1,5 @@
-import { Transform } from "class-transformer";
-import { IsInt, IsNotEmpty, IsString, Matches, Min } from "class-validator";
+import { Transform, Type } from "class-transformer";
+import { IsEmail, IsInt, IsNotEmpty, IsPhoneNumber, IsString, Matches, Min } from "class-validator";
 import { IsWithin30Days } from "../decorator/IsWithin30DaysConstraint";
 import { IsTimeGreaterOrEqualCurrent } from "../decorator/IsTimeGreaterOrEqualCurrentConstraint";
 
@@ -45,4 +45,25 @@ export class CreateAppointmentDto {
     })
     @IsTimeGreaterOrEqualCurrent()
     hora_servicio: string;
+
+    @IsString()
+    @IsNotEmpty()
+    @Type(() => String)
+    nombre: string;
+
+    @IsString()
+    @IsNotEmpty()
+    @Type(() => String)
+    apellido: string;
+
+    @IsEmail()
+    @IsNotEmpty()
+    @Type(() => String)
+    correo: string;
+
+    @IsPhoneNumber('CO', {
+        message: 'El número de teléfono no es válido para Colombia'
+    })
+    @Type(() => String)
+    telefono: string;
 }

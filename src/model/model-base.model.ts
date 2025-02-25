@@ -78,7 +78,11 @@ export class ModelBase {
     public formatHour() {
         const keys = [
             'hora_apertura',
-            'hora_cierre'
+            'hora_cierre',
+            'hora_inicio',
+            'hora_fin',
+            'hora_desde_servicio',
+            'hora_hasta_servicio'
         ];
         Object.entries(this.#reference).forEach(([key, value]) => {
             if (keys.includes(key) && typeof value === 'string') {

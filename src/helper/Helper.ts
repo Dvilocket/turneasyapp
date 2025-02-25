@@ -57,4 +57,9 @@ export class Helper {
 
         return `${newHour}:${newMinutes}`;
     }
+
+    static convertHourToMinute(hour: string): number {
+        const [h, m] = hour.split(':').map(Number);
+        return h * 60 + m;
+    }
 };

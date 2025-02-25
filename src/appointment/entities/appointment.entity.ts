@@ -11,6 +11,10 @@ export class Appointment extends ModelBase{
     public fecha_servicio: string = null;
     public hora_desde_servicio: string = null;
     public hora_hasta_servicio: string = null;
+    public nombre: string = null;
+    public apellido: string = null;
+    public correo: string = null;
+    public telefono: string = null;
 
     public nombreTabla: string = 'citas';
 

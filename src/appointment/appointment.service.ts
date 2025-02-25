@@ -110,7 +110,7 @@ export class AppointmentService {
     }    
 
     //Obtenemos los turnos que tenemos en la base de datos, para ese empleado
-    const shiftDb = responseShift.filter((shift: Shift) => shift.dia_semana === dayWeekUser);
+    const shiftDb: Shift[] = responseShift.filter((shift: Shift) => shift.dia_semana === dayWeekUser);
   
     const modelAppointment = new Appointment();
     modelAppointment.id_empresa = idCompany;
@@ -122,27 +122,72 @@ export class AppointmentService {
     sql = this.dbService.select(modelAppointment, true);
     const responseAppointment = await this.dbService.executeQueryModel(sql);
 
-    if (responseAppointment.length === 0) {
-      
-      /**
-       * Significa que no tiene turnos, por lo tanto tenemos que revisar,
-       * que si esta en el rango de fechas que es 
-       */
+    let isInserted = false;
+    const responseServiceModel = new Service(responseService[0]);
 
-      const responseServiceModel = new Service(responseService[0]);
-      const hourSinceService = createAppointmentDto.hora_servicio;
-      const hourUntilService = Helper.addMinutes(hourSinceService, responseServiceModel.duracion);
+    const hourSinceService = createAppointmentDto.hora_servicio;
+    const hourUntilService = Helper.addMinutes(hourSinceService, responseServiceModel.duracion);
 
-      console.log('hora desde servicio:', hourSinceService);
-      console.log('hora hasta servicio:', hourUntilService);
+    const endMinutesSinceService = Helper.convertHourToMinute(hourSinceService);
+    const endMinutesUntilService = Helper.convertHourToMinute(hourUntilService);
 
-      return 'hola mundo';
+    /**
+     * Si entra en el siguiente condicional quiere decir que el empleado
+     * para esa fecha, tiene turnos, por lo tanto tenemos que explorar
+     * que los turnos que estan creados no vaya a chocar con los turnos
+     * que vamos a ingresar, por eso se valida primero esa condición
+     */
+    if (responseAppointment.length >= 1) {
 
-    } else {
-      //significa que si tiene turnos¿
+      for(const element of responseAppointment) {
+        const modelElement = new Appointment(element);
+        modelElement.formatHour();
+
+        const modelElementMinuteStart = Helper.convertHourToMinute(modelElement.hora_desde_servicio);
+        const modelElementMinuteEnd = Helper.convertHourToMinute(modelElement.hora_hasta_servicio);
+
+        if (endMinutesSinceService >= modelElementMinuteStart && endMinutesSinceService <= modelElementMinuteEnd) {
+          throw new HttpException('The schedule is busy, please try another time slot', HttpStatus.CONFLICT);
+        }
+      }
     }
 
-    return employeeDb;
-  }
+    for(const shift of shiftDb) {
+      const modelShiftObject = new Shift(shift);
+      modelShiftObject.formatHour();
 
+      const minuteStartShiftObject = Helper.convertHourToMinute(modelShiftObject.hora_inicio);
+      const minuteEndShiftObject = Helper.convertHourToMinute(modelShiftObject.hora_fin);
+
+      const isRange = endMinutesSinceService >= minuteStartShiftObject && endMinutesUntilService <= minuteEndShiftObject;
+
+      if (shift.dia_semana === dayWeekUser && isRange) {
+
+        const modelInsert = new Appointment();
+        modelInsert.id_empresa = idCompany;
+        modelInsert.id_servicio = modelService.id_servicio;
+        modelInsert.id_empleado = createAppointmentDto.id_empleado;
+        modelInsert.dia_semana_servicio = dayWeekUser;
+        modelInsert.fecha_servicio = createAppointmentDto.fecha_servicio;
+        modelInsert.hora_desde_servicio = createAppointmentDto.hora_servicio;
+        modelInsert.hora_hasta_servicio = hourUntilService;
+        modelInsert.nombre = createAppointmentDto.nombre;
+        modelInsert.apellido = createAppointmentDto.apellido;
+        modelInsert.correo = createAppointmentDto.correo;
+        modelInsert.telefono = createAppointmentDto.telefono;
+
+        modelInsert.removeNullReferences();
+
+        const sqlInsert = this.dbService.insert(modelInsert);
+        await this.dbService.executeQueryModel(sqlInsert);
+        isInserted = true;
+        break;
+      }
+    }
+
+    if (!isInserted) {
+      throw new HttpException('it is not possible to schedule the appointment', HttpStatus.CONFLICT);
+    }
+    throw new HttpException('appointment scheduled correctly', HttpStatus.OK);
+  }
 }
