@@ -101,4 +101,6 @@ export class ModelBase {
         const [fullHour, minutes] = hour.split(':');
         return `${parseInt(fullHour, 10)}:${minutes}`;
     }
+
+    
 }

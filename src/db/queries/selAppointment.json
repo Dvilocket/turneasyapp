@@ -1,0 +1,8 @@
+{
+    "sql": "select * from citas where id_empresa in (SELECT unnest(string_to_array(?, ',')::int[]));",
+    "params" : [
+        {
+            "ID_EMPRESA" : "STRING"
+        }
+    ]
+}

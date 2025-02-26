@@ -7,6 +7,8 @@ import { Service } from 'src/service/entities';
 import { Helper } from 'src/helper';
 import { Shift } from 'src/employee/entities/shift.entity';
 import { Appointment } from './entities/appointment.entity';
+import { RequesExpressInterface } from 'src/interfaces';
+import { TypeJson } from 'src/db/interfaces';
 
 @Injectable()
 export class AppointmentService {
@@ -41,6 +43,7 @@ export class AppointmentService {
     const modelService = new Service();
     modelService.id_servicio = createAppointmentDto.id_servicio;
     modelService.id_empresa = idCompany;
+    modelService.activo = true;
     modelService.removeNullReferences();
 
     sql = this.dbService.selectOne(modelService, true);
@@ -164,6 +167,7 @@ export class AppointmentService {
       if (shift.dia_semana === dayWeekUser && isRange) {
 
         const modelInsert = new Appointment();
+
         modelInsert.id_empresa = idCompany;
         modelInsert.id_servicio = modelService.id_servicio;
         modelInsert.id_empleado = createAppointmentDto.id_empleado;
@@ -189,5 +193,180 @@ export class AppointmentService {
       throw new HttpException('it is not possible to schedule the appointment', HttpStatus.CONFLICT);
     }
     throw new HttpException('appointment scheduled correctly', HttpStatus.OK);
+  }
+
+
+  /**
+   * TODO: PENDIENTE PARA FITRAR POR SERVICIOS QUE YA SE PASARON
+   * DE LA FECHA DE HOY, MOSTRAR REGISTROS QUE SEAN A LA FECHA
+   * CONTEMPORANEA, NECESARIO HACER ESTO
+   * @param req 
+   * @returns 
+   */
+  public async getAppointment(req: RequesExpressInterface) {
+    const modelCompany = new Company();
+    modelCompany.id_usuario = req.user.id;
+    modelCompany.removeNullReferences();
+
+    let sql = this.dbService.select(modelCompany, true);
+    let response = await this.dbService.executeQueryModel(sql);
+
+    if (response.length === 0) {
+      throw new HttpException('No company has been created', HttpStatus.NO_CONTENT);
+    }
+
+    sql = this.dbService.queryStringJson('selAppointment', [
+      {
+        name: 'ID_EMPRESA',
+        value: response.map((element: Company) => element.id_empresa).join(','),
+        type: TypeJson.STRING
+      }
+    ]);
+
+    const responseAppointment = await this.dbService.executeQueryModel(sql);
+
+    if (responseAppointment.length === 0) {
+      throw new HttpException(`The company currently has no scheduled appointments.`, HttpStatus.NOT_FOUND);
+    }
+
+    const listServices: Service[]= [];
+    const listEmployees: Employee[]= [];
+
+    const createAppointment = async (idCompany: number) => {
+
+      const jsonResponse = [];
+
+      const appointment: Appointment[] =  responseAppointment.filter((element: Appointment) => element.id_empresa === idCompany);    
+
+      const addElement = (service: Service, employee: Employee, appointment: Appointment) => {
+        
+        jsonResponse.push({
+          servicio: {
+            nombre_servicio: service.nombre_servicio,
+            descripcion: service.descripcion,
+            duracion: String(service.duracion) + ' minutos',
+            precio: service.precio
+          },
+          empleado: {
+            nombre: employee.nombre,
+            correo: employee.correo,
+            telefono: employee.telefono,
+            url_imagen: employee.url_imagen
+          },
+          informacion: {
+            dia_cita: appointment.dia_semana_servicio,
+            fecha_cita: Helper.formatDate(appointment.fecha_servicio),
+            hora_cita: Helper.formatHour(appointment.hora_desde_servicio),
+            hora_finalizacion_cita: Helper.formatHour(appointment.hora_hasta_servicio),
+            nombre_cliente: appointment.nombre,
+            apellido_cliente: appointment.apellido,
+            correo_cliente: appointment.correo,
+            telefono_cliente: appointment.telefono
+          }
+        })
+      };
+
+      for(const element of appointment) {
+        
+        const model = new Appointment(element);
+        model.removeNullReferences();
+
+        if (listServices.length === 0 && listEmployees.length === 0) {
+          
+          let modelService = new Service();
+          modelService.id_servicio = model.id_servicio;
+          modelService.removeNullReferences();
+
+          const sqlModelService = this.dbService.select(modelService, true);
+          const responseModelService = await this.dbService.executeQueryModel(sqlModelService);
+
+          modelService = new Service(responseModelService[0]);
+          modelService.removeNullReferences();
+        
+          let modelEmployee = new Employee();
+          modelEmployee.id_empleado = model.id_empleado;
+          modelEmployee.removeNullReferences();
+
+          const sqlModelEmployee = this.dbService.select(modelEmployee, true);
+          const responseModelEmployee = await this.dbService.executeQueryModel(sqlModelEmployee);
+
+          modelEmployee = new Employee(responseModelEmployee[0])
+          modelEmployee.removeNullReferences();
+        
+          listServices.push(modelService);
+          listEmployees.push(modelEmployee);
+        
+          addElement(modelService, modelEmployee, model);
+
+          continue;
+
+        } else {
+          const serviceInList = listServices.filter((element) => element.id_servicio === model.id_servicio);
+          
+          let elementA = null;
+
+          if (serviceInList.length === 0) {
+            
+            elementA = new Service();
+            elementA.id_servicio = model.id_servicio;
+            elementA.removeNullReferences();
+
+            const sqlElementA = this.dbService.select(elementA, true);
+            const responseElementA = await this.dbService.executeQueryModel(sqlElementA);
+
+            elementA = new Service(responseElementA[0]);
+            elementA.removeNullReferences();
+
+            listServices.push(elementA);
+
+          } else {
+            elementA = new Service(serviceInList[0]);
+          }
+
+          const employeeInList = listEmployees.filter((element) => element.id_empleado === model.id_empleado);
+
+          let elementB = null;
+          if (employeeInList.length === 0) {
+            
+            elementB = new Employee();
+            elementB.id_empleado = model.id_empleado;
+            elementB.removeNullReferences();
+
+            const sqlElementB = this.dbService.select(elementB, true);
+            const responseElementB = await this.dbService.executeQueryModel(sqlElementB);
+
+            elementB = new Employee(responseElementB[0]);
+            elementB.removeNullReferences();
+
+            listEmployees.push(elementB);
+
+          } else {
+            elementB = new Employee(employeeInList[0]);
+          }
+          addElement(elementA, elementB, model);
+        }
+      }
+      return jsonResponse;
+    }
+
+    let responseJson = [];
+
+    for(const element of response) {
+
+      const model = new Company(element);
+      model.removeNullReferences();
+
+      model.hora_apertura = Helper.formatHour(model.hora_apertura);
+      model.hora_cierre = Helper.formatHour(model.hora_cierre);
+
+      const {id_usuario, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, nombreTabla, ...result} = model;
+      
+      result['citas'] = await createAppointment(model.id_empresa);
+
+      responseJson.push(result);
+    }
+
+
+    return responseJson;
   }
 }

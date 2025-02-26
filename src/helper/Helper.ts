@@ -14,11 +14,23 @@ export class Helper {
         callback(null, filename);
     }
 
+    /**
+     * Funcion para obtener el primero elemento de una respuesta de
+     * la base de datos
+     * @param response 
+     * @returns 
+     */
     static getFirstElement(response: any[]) {
         const key = Object.keys(response[0]);
         return response[0][key[0]] ?? -1; 
     }
 
+    /**
+     * Funcion para revisar la extension de un archivo para subirlo
+     * @param req 
+     * @param file 
+     * @param callback 
+     */
     static checkExtensionFile(req: any, file: any, callback: any) {
         const allowedExtensions = ['.jpg', '.jpeg', '.png'];
         const fileExtension = file.originalname.toLowerCase().match(/\.[0-9a-z]+$/i)?.[0];
@@ -32,6 +44,11 @@ export class Helper {
         }
     }
 
+    /**
+     * Funcion para escoger un dia de la semana
+     * @param dateString 
+     * @returns 
+     */
     static getDayWeek(dateString: string) {
         const [yearString, monthString, dayString] = dateString.split('-');
 
@@ -45,6 +62,12 @@ export class Helper {
 
     }
 
+    /**
+     * Funcion para agregarle minutos a una fecha de js
+     * @param hour 
+     * @param minuteToAdd 
+     * @returns 
+     */
     static addMinutes(hour: string, minuteToAdd: number) {
         const [hours, minutes] = hour.split(':').map(Number);
         const date = new Date();
@@ -58,8 +81,41 @@ export class Helper {
         return `${newHour}:${newMinutes}`;
     }
 
+
+    /**
+     * Funcion para convertir hora a minutos
+     * @param hour 
+     * @returns 
+     */
     static convertHourToMinute(hour: string): number {
         const [h, m] = hour.split(':').map(Number);
         return h * 60 + m;
+    }
+
+    /**
+     * Funcion para convertir una fecha de posgretsql en una fecha
+     * de js
+     * @param date 
+     * @returns 
+     */
+    static formatDate(date: string) {
+        const dateModel = new Date(date);
+
+        const year = dateModel.getFullYear();
+        const month = String(dateModel.getMonth() + 1).padStart(2, '0');
+        const day = String(dateModel.getDate()).padStart(2, '0');
+    
+        return `${year}-${month}-${day}`;
+    }
+
+    /**
+     * Funcion para formatear una hora de acuerdo al estandar
+     * preestablecido
+     * @param hour 
+     * @returns 
+     */
+    static formatHour(hour: string) {
+        const [hours, minutes] = hour.split(':');
+        return `${hours}:${minutes}`;
     }
 };
