@@ -228,7 +228,7 @@ export class AppointmentService {
       modelCompany.id_usuario = req.user.id;
       modelCompany.removeNullReferences();
 
-      let sql = this.dbService.select(modelCompany, true);
+      sql = this.dbService.select(modelCompany, true);
 
       response = await this.dbService.executeQueryModel(sql);
 
@@ -276,9 +276,8 @@ export class AppointmentService {
         }
       ])
     }
-
     const responseAppointment = await this.dbService.executeQueryModel(sql);
-
+    
     if (responseAppointment.length === 0) {
       throw new HttpException(`The company currently has no scheduled appointments.`, HttpStatus.NOT_FOUND);
     }
