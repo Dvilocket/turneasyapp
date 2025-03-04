@@ -9,6 +9,8 @@ import { Shift } from 'src/employee/entities/shift.entity';
 import { Appointment } from './entities/appointment.entity';
 import { RequesExpressInterface } from 'src/interfaces';
 import { TypeJson } from 'src/db/interfaces';
+import { QueryParamAppointmentDto } from './dto';
+import { TypeUserGeneral } from 'src/enum';
 
 @Injectable()
 export class AppointmentService {
@@ -16,7 +18,6 @@ export class AppointmentService {
   constructor(
     private readonly dbService: DbService
   ){}
-
 
   /**
    * Función para agendar una cita, esta funcion es de manera General
@@ -114,7 +115,7 @@ export class AppointmentService {
 
     //Obtenemos los turnos que tenemos en la base de datos, para ese empleado
     const shiftDb: Shift[] = responseShift.filter((shift: Shift) => shift.dia_semana === dayWeekUser);
-  
+
     const modelAppointment = new Appointment();
     modelAppointment.id_empresa = idCompany;
     modelAppointment.id_empleado = employeeDb.id_empleado;
@@ -124,6 +125,17 @@ export class AppointmentService {
 
     sql = this.dbService.select(modelAppointment, true);
     const responseAppointment = await this.dbService.executeQueryModel(sql);
+
+    /* Ahora debemo preguntarme si ese usuario con ese correo ya ha agendado
+    uan cita, no podemos agendar mas citas con ese correo que tiene
+    el usuario, si no se hace eso, vamos a permitir que ese usario agende
+    citas como el quiere*/
+
+    const existUserInDb = responseAppointment.some((appointment: Appointment) => appointment.dia_semana_servicio === dayWeekUser && appointment.correo === createAppointmentDto.correo);
+
+    if (existUserInDb) {
+      throw new HttpException("Ya programaste una cita para el dia de hoy", HttpStatus.CONFLICT);
+    }
 
     let isInserted = false;
     const responseServiceModel = new Service(responseService[0]);
@@ -143,13 +155,14 @@ export class AppointmentService {
     if (responseAppointment.length >= 1) {
 
       for(const element of responseAppointment) {
+
         const modelElement = new Appointment(element);
         modelElement.formatHour();
 
         const modelElementMinuteStart = Helper.convertHourToMinute(modelElement.hora_desde_servicio);
         const modelElementMinuteEnd = Helper.convertHourToMinute(modelElement.hora_hasta_servicio);
 
-        if (endMinutesSinceService >= modelElementMinuteStart && endMinutesSinceService <= modelElementMinuteEnd) {
+        if (endMinutesSinceService >= modelElementMinuteStart && endMinutesSinceService <= modelElementMinuteEnd || endMinutesUntilService >= modelElementMinuteStart && endMinutesUntilService <= modelElementMinuteEnd) {
           throw new HttpException('The schedule is busy, please try another time slot', HttpStatus.CONFLICT);
         }
       }
@@ -197,31 +210,72 @@ export class AppointmentService {
 
 
   /**
-   * TODO: PENDIENTE PARA FITRAR POR SERVICIOS QUE YA SE PASARON
-   * DE LA FECHA DE HOY, MOSTRAR REGISTROS QUE SEAN A LA FECHA
-   * CONTEMPORANEA, NECESARIO HACER ESTO
+   * Funcion para obtener las citas que actualmente estan en base de datos
+   * @param queryParamAppointmentDto 
    * @param req 
    * @returns 
    */
-  public async getAppointment(req: RequesExpressInterface) {
-    const modelCompany = new Company();
-    modelCompany.id_usuario = req.user.id;
-    modelCompany.removeNullReferences();
+  public async getAppointment(queryParamAppointmentDto: QueryParamAppointmentDto, req: RequesExpressInterface) {
+    
+    let response = null;
+    let sql = null;
 
-    let sql = this.dbService.select(modelCompany, true);
-    let response = await this.dbService.executeQueryModel(sql);
+    const {desde = Helper.getDateNow(), hasta = Helper.getDateNow()} = queryParamAppointmentDto;
 
-    if (response.length === 0) {
-      throw new HttpException('No company has been created', HttpStatus.NO_CONTENT);
-    }
+    if(req.user.type_user === TypeUserGeneral.CLIENT) {
+      
+      const modelCompany = new Company();
+      modelCompany.id_usuario = req.user.id;
+      modelCompany.removeNullReferences();
 
-    sql = this.dbService.queryStringJson('selAppointment', [
-      {
-        name: 'ID_EMPRESA',
-        value: response.map((element: Company) => element.id_empresa).join(','),
-        type: TypeJson.STRING
+      let sql = this.dbService.select(modelCompany, true);
+
+      response = await this.dbService.executeQueryModel(sql);
+
+      if (response.length === 0) {
+        throw new HttpException('No company has been created', HttpStatus.NO_CONTENT);
       }
-    ]);
+
+      sql = this.dbService.queryStringJson('selAppointment', [
+        {
+          name: 'ID_EMPRESA',
+          value: response.map((element: Company) => element.id_empresa).join(','),
+          type: TypeJson.STRING
+        }, 
+        {
+          name: "FECHA_DESDE",
+          value: desde,
+          type: TypeJson.STRING
+        },
+        {
+          name: "FECHA_HASTA",
+          value: hasta,
+          type: TypeJson.STRING
+        }
+      ]);
+
+    } else {
+
+      //Significa que es un administrador
+      const modelCompanyGeneral = new Company();
+      modelCompanyGeneral.removeNullReferences();
+
+      const sqlCompanyGeneral = this.dbService.select(modelCompanyGeneral, true);
+      response = await this.dbService.executeQueryModel(sqlCompanyGeneral);
+    
+      sql = this.dbService.queryStringJson("selAppointmentAdmin", [
+        {
+          name: "FECHA_DESDE",
+          value: desde,
+          type: TypeJson.STRING
+        },
+        {
+          name: "FECHA_HASTA",
+          value: hasta,
+          type: TypeJson.STRING
+        }
+      ])
+    }
 
     const responseAppointment = await this.dbService.executeQueryModel(sql);
 
@@ -326,6 +380,7 @@ export class AppointmentService {
           const employeeInList = listEmployees.filter((element) => element.id_empleado === model.id_empleado);
 
           let elementB = null;
+
           if (employeeInList.length === 0) {
             
             elementB = new Employee();
@@ -365,7 +420,6 @@ export class AppointmentService {
 
       responseJson.push(result);
     }
-
 
     return responseJson;
   }

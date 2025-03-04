@@ -1,0 +1,11 @@
+{
+    "sql": "select * from citas where fecha_servicio between ? and ?;",
+    "params" : [
+        {
+            "FECHA_DESDE": "STRING"
+        },
+        {
+            "FECHA_HASTA" : "STRING"
+        }
+    ]
+}

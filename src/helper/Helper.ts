@@ -118,4 +118,16 @@ export class Helper {
         const [hours, minutes] = hour.split(':');
         return `${hours}:${minutes}`;
     }
+
+    /**
+     * Funcion para obtener la fecha actual en formato
+     * Y-m-d
+     */
+    static getDateNow() {
+        const today = new Date(); 
+        const year = today.getFullYear(); 
+        const month = String(today.getMonth() + 1).padStart(2, '0'); 
+        const day = String(today.getDate()).padStart(2, '0'); 
+        return `${year}-${month}-${day}`;
+    }
 };

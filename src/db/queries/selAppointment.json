@@ -1,8 +1,14 @@
 {
-    "sql": "select * from citas where id_empresa in (SELECT unnest(string_to_array(?, ',')::int[]));",
+    "sql": "SELECT * FROM citas WHERE id_empresa IN (SELECT unnest(string_to_array(?, ',')::int[])) AND fecha_servicio BETWEEN ? AND ?;",
     "params" : [
         {
             "ID_EMPRESA" : "STRING"
+        },
+        {
+            "FECHA_DESDE": "STRING"
+        },
+        {
+            "FECHA_HASTA" : "STRING"
         }
     ]
 }
