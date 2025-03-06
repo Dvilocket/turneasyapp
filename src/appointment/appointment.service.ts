@@ -9,7 +9,7 @@ import { Shift } from 'src/employee/entities/shift.entity';
 import { Appointment } from './entities/appointment.entity';
 import { RequesExpressInterface } from 'src/interfaces';
 import { TypeJson } from 'src/db/interfaces';
-import { QueryParamAppointmentDto } from './dto';
+import { QueryParamAppointmentDto, QueryParamAppointmentExtendDto } from './dto';
 import { TypeUserGeneral } from 'src/enum';
 
 @Injectable()
@@ -421,5 +421,71 @@ export class AppointmentService {
     }
 
     return responseJson;
+  }
+
+  /**
+   * TOOD: pendiente todavia seguir implementando los filtros
+   * @param idEmployee 
+   * @param req 
+   * @returns 
+   */
+  public async getAppointmentByEmployee(idEmployee: number, req: RequesExpressInterface, queryParamAppointmentExtendDto: QueryParamAppointmentExtendDto) {
+    
+    let sql = null;
+    if (queryParamAppointmentExtendDto.desde && queryParamAppointmentExtendDto.hasta) {
+      
+      sql = this.dbService.queryStringJson('selAppointmentUserGeneral', [
+        {
+          name: 'ID_EMPLEADO',
+          value: idEmployee,
+          type: TypeJson.NUMBER
+        },
+        {
+          name: 'FECHA_DESDE',
+          value: queryParamAppointmentExtendDto.desde,
+          type: TypeJson.STRING
+        },
+        {
+          name: 'FECHA_HASTA',
+          value: queryParamAppointmentExtendDto.hasta,
+          type: TypeJson.STRING
+        }
+      ]);  
+    } else if (queryParamAppointmentExtendDto.dia_semana) {
+      
+      const modelAppointment = new Appointment();
+      modelAppointment.id_empleado = idEmployee;
+      modelAppointment.dia_semana_servicio = queryParamAppointmentExtendDto.dia_semana;
+      modelAppointment.removeNullReferences();
+
+      sql = this.dbService.select(modelAppointment, true);
+    }
+
+    let response: Appointment[] = await this.dbService.executeQueryModel(sql);
+
+    if (response.length === 0) {
+      throw new HttpException(`No se encuentra un registro con esos parametros de busqueda`, HttpStatus.NOT_FOUND);
+    }
+    
+    if (req.user.type_user === TypeUserGeneral.CLIENT) {
+      
+      const modelCompany = new Company();
+      modelCompany.id_usuario = req.user.id;
+      modelCompany.removeNullReferences();
+      
+      const sqlModelCompany = this.dbService.select(modelCompany, true);
+      const responseModelCompany: Company[] = await this.dbService.executeQueryModel(sqlModelCompany);
+
+      const listIdCompany = responseModelCompany.map((element) => element.id_empresa);
+
+      response = response.filter((element) => listIdCompany.includes(element.id_empresa));
+
+      if (response.length === 0){
+        throw new HttpException(`El empleado con id ${idEmployee} no le corresponde`, HttpStatus.NOT_FOUND);
+      }
+    }
+  
+    //Aqui se ponen los mecanismos para filtrar de acuerdo al argumento
+    return response;
   }
 }

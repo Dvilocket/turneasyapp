@@ -1,0 +1,14 @@
+{
+    "sql": "select * from citas where id_empleado = ? and fecha_servicio between ? and ?",
+    "params" : [
+        {
+            "ID_EMPLEADO" : "NUMBER"
+        },
+        {
+            "FECHA_DESDE" : "STRING"
+        },
+        {
+            "FECHA_HASTA" : "STRING"
+        }
+    ]
+}

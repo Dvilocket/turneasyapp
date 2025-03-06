@@ -4,7 +4,7 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { TypeUserGeneral } from 'src/enum';
 import { Roles } from 'src/common/decorators';
 import { RequesExpressInterface } from 'src/interfaces';
-import { QueryParamAppointmentDto } from './dto';
+import { QueryParamAppointmentDto, QueryParamAppointmentExtendDto } from './dto';
 
 @Controller('appointment')
 export class AppointmentController {
@@ -36,5 +36,15 @@ export class AppointmentController {
   @Get()
   public getAppointment(@Query() queryParamAppointmentDto: QueryParamAppointmentDto, @Request() req: RequesExpressInterface) {
     return this.appointmentService.getAppointment(queryParamAppointmentDto, req);
+  }
+
+  /**
+   * Ahora debemos crear un controlador que me permita
+   * filtrar pero por un empleado en concreto
+   */
+  @Roles(TypeUserGeneral.CLIENT, TypeUserGeneral.ADMINISTRATOR)
+  @Get('/employee/:id')
+  public getAppointmentByEmployee(@Param('id', ParseIntPipe) idEmployee: number, @Request() req : RequesExpressInterface, @Query() queryParamAppointmentExtendDto: QueryParamAppointmentExtendDto) {
+    return this.appointmentService.getAppointmentByEmployee(idEmployee, req, queryParamAppointmentExtendDto);
   }
 }

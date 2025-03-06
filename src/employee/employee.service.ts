@@ -551,6 +551,7 @@ export class EmployeeService {
           type: TypeJson.STRING
         }
       ]);
+
     } else {
       sql = this.dbService.queryStringJson('selShiftAdministrator');
     }
