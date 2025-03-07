@@ -402,11 +402,28 @@ export class DbService implements OnModuleInit {
 
                 const totalCharacterQuestion = [...jsonData.sql].filter((element: string) => element === '?').length;
                 
-                if (jsonData.params && totalCharacterQuestion <= 0 || jsonData.params && totalCharacterQuestion !== params.length) {
+                let total = params.length;
+
+                if (jsonData.params && totalCharacterQuestion !== params.length) {
+
+                    const list = [];
+                    for(const element of jsonData.params) {
+                        if(!list.includes(Object.keys(element)[0])) {
+                            list.push(Object.keys(element)[0]);
+                        }
+                    }
+
+                    let count = 0;
+                    for(const element of list) {
+                        count += jsonData.params.filter((e) => Object.keys(e)[0] === element).length
+                    }
+                    total = count;
+                }
+
+                if (jsonData.params && totalCharacterQuestion <= 0 || jsonData.params && totalCharacterQuestion !== total) {    
                     this.logger.log(`file ${newJson} check json because it is not complying with the internal rule`);
                     throw new HttpException(`file ${newJson} check json because it is not complying with the internal rule`, HttpStatus.BAD_REQUEST);
                 }
-
 
                 const searchKeyandYourValue = (key: string) => {
                     
@@ -422,7 +439,7 @@ export class DbService implements OnModuleInit {
                     }
 
                     const valueList = params.filter((element) => element.name === key);
-
+                    
                     if (valueList.length > 1) {
                         this.logger.log(`the key ${key} is duplicate`);
                         throw new HttpException(`the key ${key} is duplicate`, HttpStatus.BAD_REQUEST);
@@ -448,7 +465,6 @@ export class DbService implements OnModuleInit {
                     let sqlParts = jsonData.sql.split("?");
                 
                     for (const element of jsonData.params) {
-
                         const key = Object.keys(element)[0];
                         const value = searchKeyandYourValue(key);
                 

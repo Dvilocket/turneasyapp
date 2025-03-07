@@ -1,0 +1,20 @@
+{
+    "sql": "SELECT * FROM citas where id_empleado = ? and (nombre ILIKE ? or apellido ILIKE ? or correo ILIKE ? or telefono ILIKE ?)",
+    "params" : [
+        {
+            "ID_EMPLEADO" : "NUMBER"
+        },
+        {
+            "VALOR" : "STRING"
+        },
+        {
+            "VALOR" : "STRING"
+        },
+        {
+            "VALOR" : "STRING"
+        },
+        {
+            "VALOR" : "STRING"
+        }
+    ]
+}

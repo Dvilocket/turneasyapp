@@ -1,0 +1,20 @@
+{
+    "sql": "SELECT * FROM citas WHERE id_empleado = ? AND (hora_desde_servicio BETWEEN ? AND ? OR hora_hasta_servicio BETWEEN ? AND ?);",
+    "params" : [
+        {
+            "ID_EMPLEADO" : "NUMBER"
+        },
+        {
+            "HORA_DESDE" : "STRING"
+        },
+        {
+            "HORA_HASTA" : "STRING"
+        },
+        {
+            "HORA_DESDE" : "STRING"
+        },
+        {
+            "HORA_HASTA" : "STRING"
+        }
+    ]
+}

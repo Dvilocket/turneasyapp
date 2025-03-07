@@ -424,7 +424,7 @@ export class AppointmentService {
   }
 
   /**
-   * TOOD: pendiente todavia seguir implementando los filtros
+   * TOOD: Pendiente Implementar 
    * @param idEmployee 
    * @param req 
    * @returns 
@@ -434,6 +434,7 @@ export class AppointmentService {
     let sql = null;
     if (queryParamAppointmentExtendDto.desde && queryParamAppointmentExtendDto.hasta) {
       
+      //Tiene el filtro de la fecha desde hasta la fecha hasta
       sql = this.dbService.queryStringJson('selAppointmentUserGeneral', [
         {
           name: 'ID_EMPLEADO',
@@ -453,9 +454,51 @@ export class AppointmentService {
       ]);  
     } else if (queryParamAppointmentExtendDto.dia_semana) {
       
+      //Tiene el filtro de la semana
       const modelAppointment = new Appointment();
       modelAppointment.id_empleado = idEmployee;
       modelAppointment.dia_semana_servicio = queryParamAppointmentExtendDto.dia_semana;
+      modelAppointment.removeNullReferences();
+
+      sql = this.dbService.select(modelAppointment, true);
+    } else if (queryParamAppointmentExtendDto.hora_desde && queryParamAppointmentExtendDto.hora_hasta) {
+
+      sql = this.dbService.queryStringJson('selAppointmentUserGeneralByHour', [
+        {
+          name: 'ID_EMPLEADO',
+          value : idEmployee,
+          type: TypeJson.NUMBER
+        },
+        {
+          name: 'HORA_DESDE',
+          value : queryParamAppointmentExtendDto.hora_desde,
+          type: TypeJson.STRING
+        },
+        {
+          name: 'HORA_HASTA',
+          value : queryParamAppointmentExtendDto.hora_hasta,
+          type: TypeJson.STRING
+        }
+      ]);
+
+    } else if(queryParamAppointmentExtendDto.buscar) {
+      //Significa que vamos a buscar por un valor en concreto
+      sql = this.dbService.queryStringJson('selAppointmentUserGeneralByValue', [
+        {
+          name: 'ID_EMPLEADO',
+          value: idEmployee,
+          type: TypeJson.NUMBER
+        },
+        {
+          name: 'VALOR',
+          value: `${'%'}${queryParamAppointmentExtendDto.buscar}${'%'}`,
+          type: TypeJson.STRING
+        }
+      ]);
+    }  else {
+      //Significa que no trae un filtro
+      const modelAppointment = new Appointment();
+      modelAppointment.id_empleado = idEmployee;
       modelAppointment.removeNullReferences();
 
       sql = this.dbService.select(modelAppointment, true);
@@ -484,7 +527,7 @@ export class AppointmentService {
         throw new HttpException(`El empleado con id ${idEmployee} no le corresponde`, HttpStatus.NOT_FOUND);
       }
     }
-  
+
     //Aqui se ponen los mecanismos para filtrar de acuerdo al argumento
     return response;
   }
