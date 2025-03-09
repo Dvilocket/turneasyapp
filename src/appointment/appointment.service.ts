@@ -424,7 +424,7 @@ export class AppointmentService {
   }
 
   /**
-   * TOOD: Pendiente Implementar 
+   * Funcionalidad terminada, para filtrar
    * @param idEmployee 
    * @param req 
    * @returns 
@@ -527,8 +527,103 @@ export class AppointmentService {
         throw new HttpException(`El empleado con id ${idEmployee} no le corresponde`, HttpStatus.NOT_FOUND);
       }
     }
-
     //Aqui se ponen los mecanismos para filtrar de acuerdo al argumento
-    return response;
+    const listMemoryCompany: Company[] = [];
+    const listMemoryService: Service[] = [];
+    const listMemoryEmployee = [];
+
+    const responseJson = [];
+    let contador = 0;
+
+    for(const register of response) {
+      const model = new Appointment(register);
+
+      const {nombreTabla, ...resto} = model;
+
+      responseJson.push({
+        ...resto,
+        id_empresa: null,
+        id_servicio: null,
+        id_empleado: null
+      });
+
+      //Vamos a buscar la empresa
+      let result: Company[] | Service[] | Employee[] = listMemoryCompany.filter((element) => element.id_empresa === model.id_empresa);
+
+      if (result.length === 0) {
+        
+        const modelCompany = new Company();
+        modelCompany.id_empresa = model.id_empresa;
+        modelCompany.removeNullReferences();
+
+        const sql = this.dbService.selectOne(modelCompany, true);
+        let response: Company[] = await this.dbService.executeQueryModel(sql);
+
+        listMemoryCompany.push(response[0]);
+        result = response;
+      }
+
+      //Agregamos la empresa al modelo
+      responseJson[contador].id_empresa = {
+        id_empresa: result[0].id_empresa,
+        nombre: result[0].nombre,
+        direccion: result[0].direccion,
+        telefono: result[0].telefono,
+        correo: result[0].correo,
+        url_imagen: result[0].url_imagen,
+        categoria: result[0].categoria
+      };
+
+      result = listMemoryService.filter((element) => element.id_servicio === model.id_servicio);
+
+      if (result.length === 0) {
+        const modelService = new Service();
+        modelService.id_servicio = model.id_servicio;
+        modelService.removeNullReferences();
+
+        const sql = this.dbService.selectOne(modelService, true);
+        let response: Service[] = await this.dbService.executeQueryModel(sql);
+
+        listMemoryService.push(response[0]);
+        result = response;
+      }
+
+      //Agregamos el servicio al modelo
+      responseJson[contador].id_servicio = {
+        id_servicio: result[0].id_servicio,
+        nombre_servicio: result[0].nombre_servicio,
+        descripcion: result[0].descripcion,
+        duracion: result[0].duracion,
+        precio: result[0].precio,
+      }
+
+      //Ahora vamos a agregar el empleado
+
+      let result2 = listMemoryEmployee.filter((element) => element.id_empleado === model.id_empleado);
+
+      if (result2.length === 0) {
+
+        const modelEmployee = new Employee();
+        modelEmployee.id_empleado = model.id_empleado;
+        modelEmployee.removeNullReferences();
+        
+        const sql = this.dbService.selectOne(modelEmployee, true);
+        const response: Employee[] = await this.dbService.executeQueryModel(sql);
+
+        listMemoryEmployee.push(response[0]);
+        result2 = response;
+
+      }
+      responseJson[contador].id_empleado = {
+        id_empleado: result2[0].id_empleado,
+        nombre: result2[0].nombre,
+        correo: result2[0].correo,
+        telefono: result2[0].telefono,
+        url_imagen: result2[0].url_imagen,
+      }
+
+      contador += 1;
+    }
+    return responseJson
   }
 }
