@@ -11,6 +11,7 @@ import { RequesExpressInterface } from 'src/interfaces/request-express.interface
 import { Service } from 'src/service/entities';
 import { Employee } from 'src/employee/entities';
 import { Shift } from 'src/employee/entities/shift.entity';
+import { Appointment } from 'src/appointment/entities/appointment.entity';
 
 @Injectable()
 export class CompanyService {
@@ -194,6 +195,26 @@ export class CompanyService {
       });
     }
 
+    //Funcion para obtener las citas
+    const getAppointment = async (idEmployee : number) => {
+
+      const modelAppointment = new Appointment();
+      modelAppointment.id_empleado = idEmployee;
+      modelAppointment.removeNullReferences();
+
+      const sql = this.dbService.select(modelAppointment, true);
+      const response = await this.dbService.executeQueryModel(sql);
+
+      if (response.length === 0) {
+        return {};
+      }
+
+      return response.map((element: Appointment) => {
+        const {id_empresa, id_servicio, id_empleado, ...all} = element;
+        return all;
+      })
+    }
+
     //Funcion para obtener los empleados
     const getEmployee = async(idCompany: number) => {
       
@@ -213,7 +234,8 @@ export class CompanyService {
         const {id_empresa, formato_imagen, id_imagen, fecha_creacion, fecha_actualizacion, fecha_eliminacion, ...all} = element;
         return {
           ...all,
-          horario: await getShift(all.id_empleado) 
+          horario: await getShift(all.id_empleado),
+          citas: await getAppointment(all.id_empleado)
         }
       }));
     }
@@ -230,7 +252,6 @@ export class CompanyService {
             servicios: await getService(newObject.id_empresa),
             empleados: await getEmployee(newObject.id_empresa)
           }
-
         })
       );
       return result;
