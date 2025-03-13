@@ -23,42 +23,4 @@ export class QueryParamCompanyDto {
         message: `allowed values ${TypeCompanyCategoryList}`
     })
     category?: TypeCompanyCategory
-
-    @IsOptional()
-    @IsBoolean()
-    @Transform(({ value }) => {
-        if (typeof value === 'boolean') {
-            return value;
-        }
-
-        if (typeof value === 'string') {
-            if (value.toLowerCase() === 'true') {
-                return true;
-            }
-            if (value.toLowerCase() === 'false') {
-                return false;
-            }
-        }
-        throw new BadRequestException('The asset value must be a boolean or a string true or false');
-    })
-    consultServices?: boolean;
-
-    @IsOptional()
-    @IsBoolean()
-    @Transform(({value}) => {
-        if (typeof value === 'boolean') {
-            return value;
-        }
-
-        if (typeof value === 'string') {
-            if (value.toLowerCase() === 'true') {
-                return true;
-            }
-            if (value.toLowerCase() === 'false') {
-                return false;
-            }
-        }
-        throw new BadRequestException('The asset value must be a boolean or a string true or false');
-    })
-    servicesActives?: boolean;
 }

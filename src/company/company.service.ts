@@ -9,6 +9,8 @@ import { Company } from './entities/company.entity';
 import { TypeUserGeneral } from 'src/enum';
 import { RequesExpressInterface } from 'src/interfaces/request-express.interface';
 import { Service } from 'src/service/entities';
+import { Employee } from 'src/employee/entities';
+import { Shift } from 'src/employee/entities/shift.entity';
 
 @Injectable()
 export class CompanyService {
@@ -138,7 +140,7 @@ export class CompanyService {
    */
   public async getCompanies(queryParamCompanyDto: QueryParamCompanyDto) {
 
-    const {limit = 100, category = null, idUser = null, consultServices = true, servicesActives = true} = queryParamCompanyDto;
+    const {limit = 100, category = null, idUser = null} = queryParamCompanyDto;
 
     const modelSelect = new Company();
     modelSelect.fecha_eliminacion = DbService.IS_NULL;
@@ -152,6 +154,7 @@ export class CompanyService {
     let response = await this.dbService.executeQueryModel(sql);
 
 
+    //Funcion para obtener los servicios
     const getService = async (idCompany: number) => {
       
       const modelService = new Service();
@@ -163,36 +166,71 @@ export class CompanyService {
 
     
       if (responseSql.length === 0) {
-        return [];
+        return {};
       }
 
-      //Aqui se hace el filtro que se debe hacer
-      responseSql = responseSql.filter((element: Service) => element.activo === servicesActives);
-
       return responseSql.map((element: Service) => {
-        const {id_servicio, id_empresa, fecha_actualizacion, fecha_eliminacion, ...all} = element;
+        const {id_empresa, fecha_actualizacion, fecha_eliminacion, ...all} = element;
         return all;
       });
+    }
+
+    //Funcion para obtener los turnos
+    const getShift = async (idEmployee: number) => {
+
+      const modelShift = new Shift();
+      modelShift.id_empleado = idEmployee;
+      modelShift.removeNullReferences();
+
+      const sql = this.dbService.select(modelShift, true);
+      const response = await this.dbService.executeQueryModel(sql);
+
+      if (response.length === 0) {
+        return {};
+      }
+      return response.map((element: Shift) => {
+        const {id_empleado, fecha_creacion, fecha_actualizacion, fecha_eliminacion, ...all} = element;
+        return all;
+      });
+    }
+
+    //Funcion para obtener los empleados
+    const getEmployee = async(idCompany: number) => {
+      
+      const modelEmployee = new Employee();
+      modelEmployee.id_empresa = idCompany;
+      modelEmployee.removeNullReferences();
+
+      const sql = this.dbService.select(modelEmployee, true);
+      let responseSql = await this.dbService.executeQueryModel(sql);
+
+      if (responseSql.length === 0) {
+        return {};
+      }
+
+      return await Promise.all(responseSql.map( async (element: Employee) => {
+
+        const {id_empresa, formato_imagen, id_imagen, fecha_creacion, fecha_actualizacion, fecha_eliminacion, ...all} = element;
+        return {
+          ...all,
+          horario: await getShift(all.id_empleado) 
+        }
+      }));
     }
 
     if (response.length > 0) {
 
       const result = await Promise.all(
         response.map(async (element: Company) => {
-          const {id_usuario, id_empresa, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, ...newObject} = element;          
+
+          const {id_usuario, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, ...newObject} = element;          
           
-          if (consultServices) {
-            return {
-              ...newObject,
-              servicios: await getService(id_empresa)
-            }
-          } else {
-
-            return {
-              ...newObject
-            }
-
+          return {
+            ...newObject,
+            servicios: await getService(newObject.id_empresa),
+            empleados: await getEmployee(newObject.id_empresa)
           }
+
         })
       );
       return result;
