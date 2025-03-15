@@ -9,7 +9,7 @@ import { Shift } from 'src/employee/entities/shift.entity';
 import { Appointment } from './entities/appointment.entity';
 import { RequesExpressInterface } from 'src/interfaces';
 import { TypeJson } from 'src/db/interfaces';
-import { QueryParamAppointmentDto, QueryParamAppointmentExtendDto } from './dto';
+import { QueryParamAppointmentDto, QueryParamAppointmentExtendDto, QueryParamAppointmentGeneralDto } from './dto';
 import { TypeUserGeneral } from 'src/enum';
 
 @Injectable()
@@ -625,5 +625,73 @@ export class AppointmentService {
       contador += 1;
     }
     return responseJson
+  }
+
+
+  /**
+   * Metodo para revisar que horarios tiene asignado un empleado
+   * esto nos ayuda al front para revisar la disponibilidad
+   * del empleado para un cliente en concreto
+   * @param idEmployee 
+   * @param queryParamAppointmentGeneralDto 
+   * @returns 
+   */
+  public async getAppointmentByEmployeeGeneral(idEmployee: number, queryParamAppointmentGeneralDto: QueryParamAppointmentGeneralDto) {
+
+    const {
+      fecha_servicio = Helper.getDateNow(),
+      dia_semana = Helper.getDayNow(),
+      hora_desde = Helper.HOUR_FROM,
+      hora_hasta = Helper.HOUR_UNTIL
+    } = queryParamAppointmentGeneralDto;
+
+    const modelAppointment = new Appointment();
+    modelAppointment.id_empleado = idEmployee;
+    modelAppointment.fecha_servicio = fecha_servicio;
+    modelAppointment.dia_semana_servicio = dia_semana;
+    modelAppointment.hora_desde_servicio = hora_desde,
+    modelAppointment.hora_hasta_servicio = hora_hasta;
+
+    modelAppointment.removeNullReferences();
+
+    const sql = this.dbService.queryStringJson('selAppointmentGeneral', [
+      {
+        name : 'ID_EMPLEADO',
+        value: modelAppointment.id_empleado,
+        type: TypeJson.NUMBER
+      },
+      {
+        name : 'DIA_SEMANA_SERVICIO',
+        value: modelAppointment.dia_semana_servicio,
+        type: TypeJson.STRING
+      },
+      {
+        name : 'FECHA_SERVICIO',
+        value: modelAppointment.fecha_servicio,
+        type: TypeJson.STRING
+      },
+      {
+        name : 'HORA_DESDE',
+        value: modelAppointment.hora_desde_servicio,
+        type: TypeJson.STRING
+      },
+      {
+        name : 'HORA_HASTA',
+        value: modelAppointment.hora_hasta_servicio,
+        type: TypeJson.STRING
+      }
+    ]);
+
+    const response = await this.dbService.executeQueryModel(sql);
+
+
+    if (response.length === 0) {
+      throw new HttpException('No se encuentran registros con ese criterio de busqueda', HttpStatus.NOT_FOUND);
+    }
+
+    return response.map((elemet: Appointment) => {
+      const {id_empresa, id_servicio, id_empleado, id_citas, ...all} = elemet;
+      return all;
+    })
   }
 }

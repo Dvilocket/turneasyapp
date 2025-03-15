@@ -1,0 +1,27 @@
+{
+    "sql": "SELECT * FROM citas WHERE id_empleado = ? AND dia_semana_servicio = ? AND fecha_servicio = ? AND ((hora_desde_servicio >= ? AND hora_desde_servicio < ?) OR (hora_hasta_servicio > ? AND hora_hasta_servicio <= ?));",
+    "params" : [
+        {
+            "ID_EMPLEADO": "NUMBER"
+        },
+        {
+            "DIA_SEMANA_SERVICIO" : "STRING"
+        },
+        {
+            "FECHA_SERVICIO" : "STRING"
+        },
+        {
+            "HORA_DESDE" : "STRING"
+        },
+        {
+            "HORA_HASTA" : "STRING"
+        },
+        {
+            "HORA_DESDE" : "STRING"
+        }
+        ,
+        {
+            "HORA_HASTA" : "STRING"
+        }
+    ]
+}

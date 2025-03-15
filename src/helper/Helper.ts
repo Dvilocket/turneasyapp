@@ -6,6 +6,10 @@ export class Helper {
     
     static PATH_TO_TEMPO_FOLDER: string = join(__dirname, '../../src', 'tempo');
 
+    static HOUR_FROM = '00:00';
+    static HOUR_UNTIL = '23:59';
+
+
     static renameFile(req: any, file: any, callback: any) {
 
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -50,6 +54,7 @@ export class Helper {
      * @returns 
      */
     static getDayWeek(dateString: string) {
+
         const [yearString, monthString, dayString] = dateString.split('-');
 
         const yearNumber = Number(yearString);
@@ -129,5 +134,15 @@ export class Helper {
         const month = String(today.getMonth() + 1).padStart(2, '0'); 
         const day = String(today.getDate()).padStart(2, '0'); 
         return `${year}-${month}-${day}`;
+    }
+
+    /**
+     * Funcion para obtener el dia de la semana
+     * actual, puede ser Lunes, Martes ... Domingo
+     * @returns 
+     */
+    static getDayNow() { 
+        const date = this.getDateNow();
+        return this.getDayWeek(date);
     }
 };

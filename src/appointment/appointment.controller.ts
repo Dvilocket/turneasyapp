@@ -4,7 +4,7 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { TypeUserGeneral } from 'src/enum';
 import { Roles } from 'src/common/decorators';
 import { RequesExpressInterface } from 'src/interfaces';
-import { QueryParamAppointmentDto, QueryParamAppointmentExtendDto } from './dto';
+import { QueryParamAppointmentDto, QueryParamAppointmentExtendDto, QueryParamAppointmentGeneralDto } from './dto';
 
 @Controller('appointment')
 export class AppointmentController {
@@ -47,4 +47,16 @@ export class AppointmentController {
   public getAppointmentByEmployee(@Param('id', ParseIntPipe) idEmployee: number, @Request() req : RequesExpressInterface, @Query() queryParamAppointmentExtendDto: QueryParamAppointmentExtendDto) {
     return this.appointmentService.getAppointmentByEmployee(idEmployee, req, queryParamAppointmentExtendDto);
   }
-}
+
+  /**
+   * Controlador que me muestra los turnos asginados a cierto empleado, esto se
+   * hace para revisar si tenemos citas disponibles para un horario en
+   * concreto
+   */
+  @Get('/employee/general/:id')
+  public getAppointmentByEmployeeGeneral(@Param('id', ParseIntPipe) idEmployee: number, @Query() queryParamAppointmentGeneralDto: QueryParamAppointmentGeneralDto) {    
+    return this.appointmentService.getAppointmentByEmployeeGeneral(idEmployee, queryParamAppointmentGeneralDto);
+  }
+
+  
+ }
