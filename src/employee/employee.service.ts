@@ -653,4 +653,29 @@ export class EmployeeService {
     }
     return responseJson;
   }
+
+  /**
+   * Funcion para obtener los horarios de un empleado
+   * es decir, los horarios de trabajo
+   * @param idEmployee 
+   * @returns 
+   */
+  public async getShiftGeneral(idEmployee: number) {
+
+    const modelShift = new Shift();
+    modelShift.id_empleado = idEmployee;
+    modelShift.removeNullReferences();
+
+    const sql = this.dbService.select(modelShift, true);
+    const response = await this.dbService.executeQueryModel(sql);
+
+    if (response.length === 0) {
+      throw new HttpException( `Empleado con id ${idEmployee} no encontrado`, HttpStatus.NOT_FOUND);
+    }
+
+    return response.map((element: Shift) => {
+      const {id_turno, fecha_creacion, fecha_actualizacion, fecha_eliminacion, ...all} = element;
+      return all;
+    });
+  }
 }

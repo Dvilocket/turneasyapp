@@ -87,4 +87,15 @@ export class EmployeeController {
   public getShift(@Request() req: RequesExpressInterface) {
     return this.employeeService.getShift(req);
   }
+  
+  /**
+   * Controlador para obtener los horarios 
+   * de un empleado
+   * @param idEmployee 
+   * @returns 
+   */
+  @Get('/shift/general/:id')
+  public getShiftGeneral(@Param('id', ParseIntPipe) idEmployee: number) {
+    return this.employeeService.getShiftGeneral(idEmployee);
+  }
 }
