@@ -19,7 +19,7 @@ export class IsWithin30DaysConstraint implements ValidatorConstraintInterface {
     }
 
     defaultMessage(args: ValidationArguments) {
-        return 'La fecha no puede superar los 30 días a partir de la fecha actual';
+        return `La fecha no puede superar los ${envs.days_allowed_on_appointment} días a partir de la fecha actual`;
     }
 }
 
