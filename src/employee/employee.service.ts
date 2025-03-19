@@ -12,6 +12,8 @@ import { CreateEmployeeShiftDto } from './dto';
 import { Helper } from 'src/helper';
 import { Shift } from './entities/shift.entity';
 import { ResponseShiftJsonInterface, ShiftJsonInterface } from './interfaces';
+import { Appointment } from 'src/appointment/entities/appointment.entity';
+import { UpdateShiftDto } from './dto/update-shift.dto';
 
 @Injectable()
 export class EmployeeService {
@@ -677,5 +679,113 @@ export class EmployeeService {
       const {id_turno, fecha_creacion, fecha_actualizacion, fecha_eliminacion, ...all} = element;
       return all;
     });
+  }
+
+
+  /**
+   *
+   * @param id 
+   * @param req 
+   * @returns 
+   */
+  public async editShift(idShift: number, req: RequesExpressInterface, updateShiftDto: UpdateShiftDto) {
+    
+    const modelShift = new Shift();
+    modelShift.id_turno = idShift;
+    modelShift.removeNullReferences();
+
+    let sql = this.dbService.selectOne(modelShift, true);
+    let response = await this.dbService.executeQueryModel(sql);
+
+    if (response.length === 0) {
+      throw new HttpException(`No existe un registro con id ${idShift}`, HttpStatus.NOT_FOUND);
+    }
+    
+    const modelResponse = new Shift(response[0]);
+
+    if (req.user.type_user === TypeUserGeneral.CLIENT) {
+      
+      const modelEmployee = new Employee();
+      modelEmployee.id_empresa = req.user.id;
+      modelEmployee.removeNullReferences();
+
+      const sql = this.dbService.select(modelEmployee, true);
+      const response = await this.dbService.executeQueryModel(sql);
+
+      const listId = response.map((element:Employee) => element.id_empleado);
+
+      if (!listId.some((element:number) => element === modelResponse.id_empleado)) {
+        throw new HttpException('No tienes permiso para editar ese registro', HttpStatus.UNAUTHORIZED);
+      }
+    }
+    //Debo preguntarme si en ese horario tenemos registros
+    const modelAppointment = new Appointment();
+    modelAppointment.id_empleado = modelResponse.id_empleado;
+    modelAppointment.dia_semana_servicio = modelResponse.dia_semana;
+    modelAppointment.removeNullReferences();
+
+    const modelAppointmentSql = this.dbService.select(modelAppointment, true);
+    const modelAppointmentResponse = await this.dbService.executeQueryModel(modelAppointmentSql);
+
+    if (modelAppointmentResponse.length > 0) {
+      //throw new HttpException(`No se puede editar el registro porque para el dia ${modelAppointment.dia_semana_servicio} tiene citas todavia`, HttpStatus.UNAUTHORIZED);
+    }
+
+    //Pendiente para continuar con la implemetacion aqui
+    const sqlShift = this.dbService.queryStringJson('selAvailableShift', [
+      {
+        name: 'ID_EMPLEADO',
+        type : TypeJson.NUMBER,
+        value: modelResponse.id_empleado
+      },
+      {
+        name: 'DIA_SEMANA',
+        type : TypeJson.STRING,
+        value: modelResponse.dia_semana
+      },
+      {
+        name: 'ID_TURNO',
+        type : TypeJson.NUMBER,
+        value: modelResponse.id_turno
+      }
+    ]);
+
+    const responseShift = await this.dbService.executeQueryModel(sqlShift);
+
+    if (responseShift.length !== 0) { 
+
+      const hourToMinuteStart = Helper.convertHourToMinute(updateShiftDto.horario.hora_inicio);
+      const hourToMinuteEnd = Helper.convertHourToMinute(updateShiftDto.horario.hora_fin);
+
+      for(const element of responseShift) {
+        
+        const model = new Shift(element);
+        model.removeNullReferences();
+
+        const startExisting  = Helper.convertHourToMinute(model.hora_inicio);
+        const endExisting  = Helper.convertHourToMinute(model.hora_fin);
+
+        if (!(hourToMinuteEnd <= startExisting || hourToMinuteStart >= endExisting)) {
+          throw new HttpException(`Conflicto con el horario con id ${model.id_turno}`, HttpStatus.CONFLICT);
+        } 
+      }
+    }
+
+    const modelWhere = new Shift();
+    modelWhere.id_turno = modelResponse.id_turno;
+    modelWhere.removeNullReferences();
+      
+    const modelSet = new Shift();
+    modelSet.hora_inicio = updateShiftDto.horario.hora_inicio;
+    modelSet.hora_fin = updateShiftDto.horario.hora_fin;
+    modelSet.fecha_actualizacion = DbService.NOW;
+    modelSet.removeNullReferences();
+      
+    const sqlUpdate = this.dbService.update(modelWhere, modelSet);
+
+    await this.dbService.executeQueryModel(sqlUpdate);
+
+    throw new HttpException('Se actualizo correctamente el horario', HttpStatus.OK);
+
   }
 }

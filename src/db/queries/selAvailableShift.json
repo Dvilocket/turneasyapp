@@ -1,0 +1,14 @@
+{
+    "sql": "SELECT * FROM turno WHERE id_empleado = ? AND dia_semana = ? AND id_turno != ?",
+    "params" : [
+        {
+            "ID_EMPLEADO" : "NUMBER"
+        },
+        {
+            "DIA_SEMANA" : "STRING"
+        },
+        {
+            "ID_TURNO" : "NUMBER"
+        }
+    ]
+}

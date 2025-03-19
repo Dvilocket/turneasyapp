@@ -11,6 +11,7 @@ import { DeleteFileOnErrorInterceptor } from 'src/common/interceptors';
 import { RequesExpressInterface } from 'src/interfaces';
 import { ParseEmployeePipe } from './pipes';
 import { CreateEmployeeShiftDto } from './dto';
+import { UpdateShiftDto } from './dto/update-shift.dto';
 
 @Controller('employee')
 export class EmployeeController {
@@ -87,7 +88,16 @@ export class EmployeeController {
   public getShift(@Request() req: RequesExpressInterface) {
     return this.employeeService.getShift(req);
   }
-  
+
+  /**
+   * Controlador para editar el horario de un empleado
+   * 
+   */
+  @Roles(TypeUserGeneral.CLIENT, TypeUserGeneral.ADMINISTRATOR)
+  @Patch('/shift/:id')
+  public editShift(@Param('id', ParseIntPipe) id: number, @Request() req: RequesExpressInterface, @Body() updateShiftDto: UpdateShiftDto) {
+    return this.employeeService.editShift(id, req, updateShiftDto);
+  }
   /**
    * Controlador para obtener los horarios 
    * de un empleado
