@@ -6,7 +6,6 @@ import { join } from 'path';
 import { appendFileSync, closeSync, existsSync, openSync, unlinkSync } from 'fs';
 import { Helper } from 'src/helper';
 
-
 @Injectable()
 export class CronService {
 
@@ -23,10 +22,20 @@ export class CronService {
     }
   }
 
+  /**
+   * funcion para obtener la ruta del lock
+   * @param name 
+   * @returns 
+   */
   private getLockFilePath(name: string): string {
     return join(this.LOCK_DIR, `${name}.lock`);
   }
 
+  /**
+   * funcion para obtener el lock de un archivo y bloquearlo
+   * @param name 
+   * @returns 
+   */
   private acquireLock(name: string) {
     const lockFile = this.getLockFilePath(name);
     try {
@@ -41,6 +50,10 @@ export class CronService {
     }
   }
 
+  /**
+   * funcion para quitar el lock del archivo
+   * @param name 
+   */
   private releaseLock(name: string): void {
     const lockFile = this.getLockFilePath(name);
     try {
@@ -50,6 +63,11 @@ export class CronService {
     }
   }
 
+  /**
+   * Funcion para agregar un mensaje en un log
+   * @param name 
+   * @param message 
+   */
   private addMessageLog(name: string, message: string) {
     
     const logFile = join(this.LOG_DIR, `${Helper.getDateNow()}_${name}.log`);
@@ -61,6 +79,11 @@ export class CronService {
     appendFileSync(logFile, logMessage, 'utf8');
   }
 
+  /**
+   * 
+   * @param name 
+   * @param queryParamCronDto 
+   */
   public async executeCron(name: string, queryParamCronDto: QueryParamCronDto) {
 
     const {clave = null, hilo = null} = queryParamCronDto;
@@ -97,7 +120,9 @@ export class CronService {
       }
 
       try {
-        
+
+        //Aqui va la logica de todo el cron        
+
         //this.addMessageLog(name, 'Hola esto es un mensaje');
 
       } finally {
