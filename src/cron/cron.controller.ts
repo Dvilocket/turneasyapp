@@ -1,4 +1,4 @@
-import { Controller, Get, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { CronService } from './cron.service';
 import { QueryParamCronDto } from './dto/query-param-cron.dto';
 

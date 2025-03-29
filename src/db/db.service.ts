@@ -370,7 +370,7 @@ export class DbService implements OnModuleInit {
      * @param nameJson 
      * @param params 
      */
-    public queryStringJson(nameJson:string, params: JsonQueryInterface[] = null) {
+    public queryStringJson(nameJson:string, params: JsonQueryInterface[] = []) {
         
         if (nameJson) {
 
