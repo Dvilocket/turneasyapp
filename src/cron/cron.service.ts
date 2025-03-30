@@ -3,9 +3,11 @@ import { HttpService } from '@nestjs/axios';
 import { QueryParamCronDto } from './dto/query-param-cron.dto';
 import { envs } from 'src/config/envs';
 import { join } from 'path';
-import { appendFileSync, closeSync, existsSync, openSync, unlinkSync } from 'fs';
+import { appendFileSync, closeSync, existsSync, openSync, readdirSync, readFileSync, unlinkSync } from 'fs';
 import { Helper } from 'src/helper';
 import { DbService } from 'src/db/db.service';
+import { QueryParamCronDownloadDto } from './dto';
+import { Response } from 'express';
 
 @Injectable()
 export class CronService {
@@ -71,9 +73,14 @@ export class CronService {
     }
   }
 
+  /**
+   * Funcion para agregar un log y tener la trazibilidad 
+   * del proceso
+   * @param message 
+   */
   private addMessageLog(message: string) {
     if (this.nameFile) {
-      const logFile = join(this.LOG_DIR, `${Helper.getDateNow()}_${this.nameFile}.log`);
+      const logFile = join(this.LOG_DIR, `${Helper.getDateNow()}_${this.nameFile.toLowerCase()}.log`);
       const timestamp = new Date().toISOString();
       const logMessage = `[${timestamp}] ${message}\n`;
       appendFileSync(logFile, logMessage, 'utf8');
@@ -99,6 +106,11 @@ export class CronService {
     this.addMessageLog("Termina el cron HistoricalDataAppointments");
   };
 
+  /**
+   * Metodo para ejecutar un cron, simula la peticion de un hilo
+   * @param name 
+   * @param queryParamCronDto 
+   */
   public async executeCron(name: string, queryParamCronDto: QueryParamCronDto) {
     const { clave = null, hilo = null } = queryParamCronDto;
 
@@ -146,5 +158,74 @@ export class CronService {
         this.releaseLock(name);
       }
     }
+  }
+
+  /**
+   * Metodo para descargar un archivo, en este caso vamos a descargar
+   * los archivos que genera el cron
+   * @param name 
+   * @param queryParamCronDownloadDto 
+   * @returns 
+   */
+  public downloadCronFile(name: string, queryParamCronDownloadDto: QueryParamCronDownloadDto, res: Response) {
+
+    const {fecha = Helper.getDateNow()} = queryParamCronDownloadDto;
+
+    const getMemoryLogs = () => {
+      
+      const nameFiles = readdirSync(this.LOG_DIR);
+      const objectMemory = {};
+
+      if (nameFiles.length === 0) {
+        return objectMemory;
+      }
+
+      for(const element of nameFiles){
+        
+        let general = element.split('_');
+        const date = general[0];
+        general = general[1].split('.');
+        const fileName = general[0];
+        const extension = general[1];
+
+        if (Object.keys(objectMemory).length === 0 || !Object.keys(objectMemory).includes(fileName)) {
+          objectMemory[fileName] = {
+            dateFile : [
+              date
+            ],
+            extensionFile: extension
+          }
+        } else {
+          objectMemory[fileName].dateFile.push(date);
+        }
+      }
+      return objectMemory;
+    }
+
+    const objectMemory: {
+      [key: string] : {
+        dateFile: string[],
+        extensionFile: string
+      }
+    } = getMemoryLogs();
+
+    //Preguntar si existe el archivo
+    if (Object.keys(objectMemory).length === 0 || !Object.keys(objectMemory).includes(name)) {
+      throw new HttpException(`No existe el archivo ${name}`, HttpStatus.NOT_FOUND);
+    }
+
+    //Preguntar si existe la fecha buscada para ese archivo
+    if (!objectMemory[name].dateFile.includes(fecha)) {
+      throw new HttpException(`No existe la fecha ${fecha} para el archivo ${name}`, HttpStatus.NOT_FOUND);
+    }
+
+    //Ahora, aqui todo bien, ahora si podemos descargar el archivo
+    const completeRoute = join(this.LOG_DIR, `${fecha}_${name}.${objectMemory[name].extensionFile}`);
+
+    return res.sendFile(completeRoute, (err) => {
+      if (err) {
+        return res.status(500).send('Error al enviar el archivo');
+      }
+    });
   }
 }
