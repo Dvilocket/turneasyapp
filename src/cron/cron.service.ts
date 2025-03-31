@@ -3,11 +3,12 @@ import { HttpService } from '@nestjs/axios';
 import { QueryParamCronDto } from './dto/query-param-cron.dto';
 import { envs } from 'src/config/envs';
 import { join } from 'path';
-import { appendFileSync, closeSync, existsSync, openSync, readdirSync, readFileSync, unlinkSync } from 'fs';
+import { appendFileSync, closeSync, existsSync, openSync, readdirSync, unlinkSync } from 'fs';
 import { Helper } from 'src/helper';
 import { DbService } from 'src/db/db.service';
 import { QueryParamCronDownloadDto } from './dto';
 import { Response } from 'express';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class CronService {
@@ -15,21 +16,23 @@ export class CronService {
   private readonly BASE_URL = envs.base_url || 'http://localhost:3000';
   private readonly logger = new Logger(CronService.name);
   private readonly LOCK_DIR = join(__dirname, '../../src', 'cron', 'cron_locks');
-  private readonly LOG_DIR = join(__dirname, '../../src', 'cron', 'logs');
-
+  private readonly LOG_DIR = join(__dirname, '../../src', 'cron', 'logs');  
   private readonly MEMORY_CRON_SERVICE: {
     [key: string] : {
       canRun: boolean,
       password: string,
+      name: string,
       execute: () => Promise<void>;
     }
   };
+  private readonly EMAIL_BASE_CRON = "miguel.ramirez2@utp.edu.co";
 
   private nameFile: string;
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly dbService: DbService
+    private readonly dbService: DbService,
+    private readonly emailService: EmailService
   ) {
 
     if (!existsSync(this.LOCK_DIR)) {
@@ -41,6 +44,7 @@ export class CronService {
       cronCopyHistoricalDataAppointments: {
         canRun: true,
         password: "miguel123",
+        name: "CronHistorialDeCitasLog",
         execute: this.executecronCopyHistoricalDataAppointments
       }
     };
@@ -152,6 +156,24 @@ export class CronService {
       try {
         this.nameFile = name;
         await this.MEMORY_CRON_SERVICE[name].execute();
+
+        const view = Helper.getView("cron-view-ok", [
+          {
+            NOMBRECRON : this.MEMORY_CRON_SERVICE[name].name
+          }
+        ]);
+        
+        if (view) {
+          await this.emailService.sendEmail({
+            to: this.EMAIL_BASE_CRON,
+            subject: "Informacion de cron",
+            html: view
+          });
+          this.addMessageLog("Se envio el correo de aviso")
+        } else {
+          this.addMessageLog("No es posible enviar el correo de aviso, porque no se cargo la vista")
+        }
+
       } catch(error) {
         this.addMessageLog(`Succedio el siguiente error ${error.message}`);
       } finally {

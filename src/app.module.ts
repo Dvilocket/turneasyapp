@@ -7,9 +7,11 @@ import { ServiceModule } from './service/service.module';
 import { EmployeeModule } from './employee/employee.module';
 import { AppointmentModule } from './appointment/appointment.module';
 import { CronModule } from './cron/cron.module';
+import { EmailService } from './email/email.service';
+import { EmailModule } from './email/email.module';
 @Module({
-  imports: [AuthModule, CompanyModule, CloudinaryModule, ServiceModule, EmployeeModule, AppointmentModule, CronModule],
+  imports: [AuthModule, CompanyModule, CloudinaryModule, ServiceModule, EmployeeModule, AppointmentModule, CronModule, EmailModule],
   controllers: [],
-  providers: [DbService],
+  providers: [DbService, EmailService],
 })
 export class AppModule {}

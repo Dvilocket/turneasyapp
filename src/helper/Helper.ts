@@ -1,10 +1,14 @@
 import { BadRequestException } from "@nestjs/common";
 import { extname, join } from "path";
-import { TypeDayWeek, TypeDayWeekListGeneral } from "src/enum";
+import {TypeDayWeekListGeneral } from "src/enum";
+
+import * as fs from 'fs';
 
 export class Helper {
     
     static PATH_TO_TEMPO_FOLDER: string = join(__dirname, '../../src', 'tempo');
+
+    static PATH_TO_VIEWS: string = join(__dirname, '../../src/views');
 
     static HOUR_FROM = '00:00';
     static HOUR_UNTIL = '23:59';
@@ -145,4 +149,72 @@ export class Helper {
         const date = this.getDateNow();
         return this.getDayWeek(date);
     }
+
+    /**
+     * Pedniente implementar la logica de este metodo
+     * @param route 
+     * @param params 
+     */
+    static getView(nameRoute: string, params: { [key: string]: string }[] = []) {
+        
+        if (!nameRoute) {
+            return null;
+        }
+
+        const routeList = nameRoute.split(".");
+
+        if (routeList.length === 2) {
+            if (routeList[1] !== "html") {
+                return null;
+            }
+        } else {
+            nameRoute = routeList[0] + ".html";
+        }
+
+        const hasRepeatedStamps = (): boolean => {
+            const memory = [];
+            for(const element of params) {
+                const key = Object.keys(element)[0];
+                if (!memory.includes(key)) {
+                    memory.push(key)
+                } else {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if (hasRepeatedStamps()) {
+            return null;
+        }
+
+        const route = join(Helper.PATH_TO_VIEWS, nameRoute);
+
+        if (!fs.existsSync(route)) {
+            return null;
+        }
+
+        let htmlContent = fs.readFileSync(route, "utf8");
+        const regex = /__\w+__/g; 
+
+        if (!regex.test(htmlContent)) {
+            return htmlContent;
+        }
+
+        const searchStamp = (key: string): string => {
+            for(const element of params){
+                if (Object.keys(element)[0] === key) {
+                    return element[key];
+                }
+            }
+            return key;
+        }
+
+        htmlContent = htmlContent.replace(/__\w+__/g, (match) => {
+            const key = match.slice(2, -2);
+            return searchStamp(key);  
+        });
+        return htmlContent;
+    }
+    
 };

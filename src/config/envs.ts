@@ -21,6 +21,8 @@ interface EnvVars {
     CLOUDINARY_API_SECRET: string;
     DAYS_ALLOWED_ON_APPOINTMENT: number;
     BASE_URL: string;
+    RESEND_EMAIL_API_KEY: string;
+    DOMAIN_RESEND_EMAIL: string;
 }
 
 const envsSchema = joi.object({
@@ -42,7 +44,9 @@ const envsSchema = joi.object({
     CLOUDINARY_API_KEY: joi.string().required(),
     CLOUDINARY_API_SECRET: joi.string().required(),
     DAYS_ALLOWED_ON_APPOINTMENT: joi.string().required(),
-    BASE_URL: joi.string().required()
+    BASE_URL: joi.string().required(),
+    RESEND_EMAIL_API_KEY: joi.string().required(),
+    DOMAIN_RESEND_EMAIL: joi.string().required()
 }).unknown(true);
 
 const {error, value} = envsSchema.validate({
@@ -74,5 +78,7 @@ export const envs = {
     cloudinary_api_key: envVars.CLOUDINARY_API_KEY,
     cloudinary_api_secret: envVars.CLOUDINARY_API_SECRET,
     days_allowed_on_appointment: envVars.DAYS_ALLOWED_ON_APPOINTMENT,
-    base_url: envVars.BASE_URL
+    base_url: envVars.BASE_URL,
+    resend_email_api_key: envVars.RESEND_EMAIL_API_KEY,
+    domain_resend_email: envVars.DOMAIN_RESEND_EMAIL
 };

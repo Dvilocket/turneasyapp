@@ -21,3 +21,5 @@ export class CronController {
     return this.cronService.executeCron(name, queryParamCronDto);
   }
 }
+
+
