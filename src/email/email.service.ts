@@ -6,6 +6,7 @@ import { envs } from 'src/config';
 export class EmailService {
 
   private resend: Resend;
+  private readonly EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   constructor() {
     this.resend = new Resend(envs.resend_email_api_key);
@@ -35,7 +36,51 @@ export class EmailService {
       });
       return response;
     } catch(error) {
-      throw new Error(`No se pudo enviar el corre ${error.message}`);
+      throw new Error(`No se pudo enviar el correo ${error.message}`);
+    }
+  }
+
+  /**
+   * Metodo para validar si un correo es un Email valido
+   * @param email 
+   * @returns 
+   */
+  private isEmailValidate(email: string): boolean {
+    return this.EMAIL_REGEX.test(email);
+  }
+
+  /**
+   * Metodo para enviar un correo a varios correos
+   * @param subject 
+   * @param html 
+   * @param to 
+   */
+  public async sendAllEmail(subject: string, html: string, to: string[]) {
+    
+    try {
+
+      const emailValidate = [];
+    
+      for(const email of to) {
+        if (this.isEmailValidate(email)) {
+          emailValidate.push(email);
+        }
+      }
+
+      if (emailValidate.length === 0) {
+        throw new Error("No se puede enviar los emails, porque todos los correos no son validos");
+      }
+
+      for(const element of emailValidate) {
+        await this.sendEmail({
+          subject,
+          html,
+          to: element
+        });
+      }
+
+    } catch(error) {
+      throw new Error(`No se pudo enviar el correo ${error.message}`);
     }
   }
 }
