@@ -1,5 +1,6 @@
 import { Transform, Type } from "class-transformer";
 import { IsEmail, IsLowercase, IsOptional, IsPhoneNumber, IsString, Matches } from "class-validator";
+import { NoRepeatedCommaValues } from "../decorator/NoRepeatedCommaValuesConstraint";
 
 export class CreateEmployeeDto {
 
@@ -24,7 +25,16 @@ export class CreateEmployeeDto {
     })
     telefono: string;
 
+    @IsString()
+    @NoRepeatedCommaValues({
+        message: "No se permiten valores repetidos en el campo id_servicio"
+    })
+    id_servicio: string;
+
     @IsOptional()
     @IsString()
+    @NoRepeatedCommaValues({
+        message: "No se permite valores repetidos en el campo id_empresa"
+    })
     id_empresa?: string;
 }

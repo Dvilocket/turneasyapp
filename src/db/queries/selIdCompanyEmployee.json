@@ -1,0 +1,11 @@
+{
+    "sql": "select * from empresa where id_usuario = ? and id_empresa in (SELECT unnest(string_to_array(?, ',')::int[]))",
+    "params" : [
+        {
+            "ID_USUARIO" : "NUMBER"
+        },
+        {
+            "ID_EMPRESA" : "STRING"
+        }
+    ]
+}

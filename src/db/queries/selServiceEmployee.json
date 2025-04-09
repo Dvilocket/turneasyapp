@@ -1,0 +1,11 @@
+{
+    "sql": "select t3.* from usuario as t1  inner join empresa as t2 on t1.id_usuario = t2.id_usuario inner join servicio as t3 on t2.id_empresa = t3.id_empresa where t1.id_usuario = ? and t3.id_servicio in (SELECT unnest(string_to_array(?, ',')::int[]))",
+    "params" : [
+        {
+            "ID_USUARIO" : "NUMBER"
+        },
+        {
+            "ID_SERVICIO" : "STRING"
+        }
+    ]
+}

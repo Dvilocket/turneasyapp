@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { DbService } from 'src/db/db.service';
-import { Employee } from './entities';
+import { Employee, EmployeeServiceEntity } from './entities';
 import { Company } from 'src/company/entities/company.entity';
 import { RequesExpressInterface } from 'src/interfaces';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
@@ -14,6 +14,8 @@ import { Shift } from './entities/shift.entity';
 import { ResponseShiftJsonInterface, ShiftJsonInterface } from './interfaces';
 import { Appointment } from 'src/appointment/entities/appointment.entity';
 import { UpdateShiftDto } from './dto/update-shift.dto';
+import { Service } from 'src/service/entities';
+
 
 @Injectable()
 export class EmployeeService {
@@ -31,7 +33,7 @@ export class EmployeeService {
    * @param file 
    */
   public async createEmployee(createEmployeeDto: CreateEmployeeDto, req: RequesExpressInterface, file: Express.Multer.File) {
-    
+  
     const modelEmployee = new Employee(createEmployeeDto);
     modelEmployee.removeNullReferences();
 
@@ -44,32 +46,54 @@ export class EmployeeService {
 
 
     if (response.length > 0) {
-      throw new HttpException(`Mail ${modelSelectEmployee.correo} already exists`, HttpStatus.CONFLICT);
+      throw new HttpException(`Ya existe un empleado con el siguiente correo: ${modelSelectEmployee.correo}`, HttpStatus.CONFLICT);
     }
 
     let modelSelectCompany = new Company();
     modelSelectCompany.id_usuario = req.user.id;
     modelSelectCompany.removeNullReferences();
 
-
     sql = this.dbService.select(modelSelectCompany, true);
 
     response = await this.dbService.executeQueryModel(sql);
 
     if (response.length === 0) {
-      throw new HttpException(`You do not currently have any company created`, HttpStatus.BAD_REQUEST);
+      throw new HttpException(`No hay una empresa creada`, HttpStatus.BAD_REQUEST);
     }
 
     const [secureUrl, publicId, format] = await this.cloudinaryService.uploadImage(file);
 
     if (!secureUrl || !publicId || !format) {
-      throw new HttpException('It is not possible to upload images at this time', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException('No es posible subir la imagen en este momento', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     modelEmployee.url_imagen = secureUrl;
     modelEmployee.formato_imagen = format;
     modelEmployee.id_imagen = publicId;
 
+    //Ahora debemos analizar si la empresa tiene servicios creado
+    const sqlServiceEmployee = this.dbService.queryStringJson('selServiceEmployee', [
+      {
+        name: 'ID_USUARIO',
+        type: TypeJson.NUMBER,
+        value: req.user.id
+      }, 
+      {
+        name: 'ID_SERVICIO',
+        type: TypeJson.STRING,
+        value: createEmployeeDto.id_servicio
+      }
+    ]);
+
+    const responseSqlServiceEmployee = await this.dbService.executeQueryModel(sqlServiceEmployee);
+
+    if (responseSqlServiceEmployee.length !== createEmployeeDto.id_servicio.split(',').length) {
+      throw new HttpException('Error, algun id_servicio no le corresponde', HttpStatus.CONFLICT);
+    }
+
+    this.dbService.beginTransaction();
+
+    let responseEmployeeDb: any[] = []
 
     if (response.length === 1) {
 
@@ -78,31 +102,50 @@ export class EmployeeService {
 
       sql = this.dbService.insert(modelEmployee);
 
+      const result = await this.dbService.executeQueryInTransaction(sql);
 
-      await this.dbService.executeQueryModel(sql);
+      responseEmployeeDb.push(result);
 
     } else {
 
       if (!createEmployeeDto.id_empresa) {
-        throw new HttpException('The id_empresa attribute is necessary because the client has several companies', HttpStatus.BAD_REQUEST);
+        await this.dbService.rollbackTransaction();
+        throw new HttpException('Es necesario la id_empresa porque tiene multiples empresas creadas', HttpStatus.BAD_REQUEST);
       }
-      
-      const listIdCompany = response.map((element: Company) => element.id_empresa);
-      
-      let idCompanyUser = createEmployeeDto.id_empresa.split(',').map(Number);
 
-      idCompanyUser = idCompanyUser.filter((element: number) => listIdCompany.includes(element));
+      //Debo preguntarme si los id que me ingresan, pertenecen a esa empresa
+      const sqlBelong = this.dbService.queryStringJson('selIdCompanyEmployee', [
+        {
+          name: "ID_USUARIO",
+          type: TypeJson.NUMBER,
+          value: req.user.id
+        },
+        {
+          name: "ID_EMPRESA",
+          type: TypeJson.STRING,
+          value: createEmployeeDto.id_empresa
+        }
+      ]);
+
+      const responseBelong = await this.dbService.executeQueryModel(sqlBelong);
+
+      if (responseBelong.length !== createEmployeeDto.id_empresa.split(',').length) {
+        this.dbService.rollbackTransaction();
+        throw new HttpException(`Error, algun id_empresa no le corresponde`, HttpStatus.CONFLICT);
+      }
+
+      //Signifca que los id que me ingresa, si le pertenecen a esa empresa
       
+      const idCompanyUser = createEmployeeDto.id_empresa.split(',').map(Number) ?? [];
 
       if (idCompanyUser.length === 0) {
-        throw new HttpException(`the ids ${createEmployeeDto.id_empresa} do not exist`, HttpStatus.BAD_REQUEST);
+        await this.dbService.rollbackTransaction();
+        throw new HttpException(`los ids ${createEmployeeDto.id_empresa} no existen`, HttpStatus.BAD_REQUEST);
       }
-
-      this.dbService.beginTransaction();
 
       for(const idCompany of idCompanyUser) {
         
-        const modelInsertCompany = new Company({
+        const modelInsertCompany = new Employee({
           ...modelEmployee
         });
 
@@ -111,15 +154,49 @@ export class EmployeeService {
 
         sql = this.dbService.insert(modelInsertCompany);
 
+        let result = await this.dbService.executeQueryInTransaction(sql);
 
+        responseEmployeeDb.push(result[0]);
+      }
+    }
+
+    //Ahora debemos insertar los servicios al empleado
+
+    if (responseEmployeeDb.length === 0) {
+      await this.dbService.rollbackTransaction();
+      throw new HttpException('Sucedio un error interno registrando el empleado', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    for(const element of responseEmployeeDb) {
+
+      const model = new Employee(element);
+
+      if (!responseSqlServiceEmployee.some((el:Service) => model.id_empresa === el.id_empresa)) {
+        await this.dbService.rollbackTransaction();
+        throw new HttpException(`La empresa ${model.id_empresa} no cuenta con un servicio`, HttpStatus.CONFLICT);  
+      }
+
+      const serviceElement = responseSqlServiceEmployee.filter((el: Service) => el.id_empresa === model.id_empresa );
+
+      for(const service of serviceElement) {
+        const modelService = new Service(service);
+
+        const modelEmployeeServiceEntity = new EmployeeServiceEntity();
+        
+        modelEmployeeServiceEntity.id_servicio = modelService.id_servicio;
+        modelEmployeeServiceEntity.id_empleado = model.id_empleado;
+
+        modelEmployeeServiceEntity.removeNullReferences();
+
+        const sql = this.dbService.insert(modelEmployeeServiceEntity);
         await this.dbService.executeQueryInTransaction(sql);
       }
-      this.dbService.commitTransaction();
     }
-    
-    throw new HttpException('employees were inserted correctly', HttpStatus.OK);
-  }
 
+    await this.dbService.commitTransaction();
+    
+    throw new HttpException('El empleado fue insertado correctamente', HttpStatus.OK);
+  }
 
 
   /**
