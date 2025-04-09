@@ -146,4 +146,34 @@ export class ServiceService {
     )
   }
 
+  /**
+   * Funcion para obtener los servicios de una empresa
+   * @param id 
+   * @returns 
+   */
+  public async getServiceGeneral(id: number) {
+    
+    const model = new Service();
+    model.id_empresa = id;
+    model.activo = true;
+    model.removeNullReferences();
+
+    const sql = this.dbService.select(model, true);
+
+    const response = await this.dbService.executeQueryModel(sql);
+
+    if (response.length === 0) {
+      throw new HttpException(`No se encuentran servicios para la empresa ${id}`, HttpStatus.NOT_FOUND);
+    }
+
+    return response.map((element: Service) => ({
+      id_servicio: element.id_servicio,
+      nombre_servicio: element.nombre_servicio,
+      descripcion: element.descripcion,
+      duracion: element.duracion,
+      precio: element.precio,
+      consolidado: `${element.nombre_servicio} - $${element.precio.toLocaleString('es-CO')}`
+    }))
+
+  }
 }

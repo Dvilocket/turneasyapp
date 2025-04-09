@@ -35,4 +35,9 @@ export class ServiceController {
   public editServiceCompany(@Param('id', ParseIntPipe) id: number, @Body() editServiceDto: EditServiceDto, @Request() req: RequesExpressInterface) {  
     return this.serviceService.editServiceCompany(id, editServiceDto, req);
   }
+
+  @Get('/:id')
+  public getServiceGeneral(@Param('id', ParseIntPipe) id: number) {
+    return this.serviceService.getServiceGeneral(id);
+  }
 }
