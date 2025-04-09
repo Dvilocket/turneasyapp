@@ -108,4 +108,15 @@ export class EmployeeController {
   public getShiftGeneral(@Param('id', ParseIntPipe) idEmployee: number) {
     return this.employeeService.getShiftGeneral(idEmployee);
   }
+
+  /**
+   * Controlador para mostrar los empleados que estan asignados a un
+   * servicio especifico
+   * @param idService 
+   * @returns 
+   */
+  @Get('/service/:idService')
+  public getEmployeeByService(@Param('idService', ParseIntPipe) idService: number) {
+    return this.employeeService.getEmployeeByService(idService);
+  }
 }

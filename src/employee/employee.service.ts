@@ -865,4 +865,51 @@ export class EmployeeService {
     throw new HttpException('Se actualizo correctamente el horario', HttpStatus.OK);
 
   }
+
+  /**
+   * Funcion para obtener los empleados que estan asignado a un
+   * servicio especifico
+   * @param idService 
+   * @returns 
+   */
+  public async getEmployeeByService(idService: number) {
+    
+    const modelEmployeeServiceEntity = new EmployeeServiceEntity();
+    modelEmployeeServiceEntity.id_servicio = idService;
+    modelEmployeeServiceEntity.removeNullReferences();
+
+    const sql = this.dbService.select(modelEmployeeServiceEntity, true);
+    const response = await this.dbService.executeQueryModel(sql);
+
+    if (response.length === 0) {
+      throw new HttpException(`el servicio con id ${idService} no existe`, HttpStatus.NOT_FOUND);
+    }
+
+    const getInfoEmployee = async (idEmployee: number) => {
+      
+      const model = new Employee();
+      model.id_empleado = idEmployee;
+      model.removeNullReferences();
+
+      const sql = this.dbService.select(model, true)
+      const response = await this.dbService.executeQueryModel(sql);
+
+      return response.map((element: Employee) => ({
+        id_empleado: element.id_empleado,
+        id_empresa: element.id_empresa,
+        nombre: element.nombre,
+        correo: element.correo,
+        telefono: element.telefono,
+        url_imagen: element.url_imagen
+      }));
+    };
+    
+    return  await Promise.all(
+      response.map(async (element: EmployeeServiceEntity) => ({
+        ...element,
+        informacion_empleado: await getInfoEmployee(element.id_empleado)
+      }))
+    );
+    
+  }
 }
