@@ -210,7 +210,7 @@ export class CompanyService {
       }
 
       return response.map((element: Appointment) => {
-        const {id_empresa, id_servicio, id_empleado, ...all} = element;
+        const {id_empresa, id_empleado, ...all} = element;
         return all;
       })
     }
