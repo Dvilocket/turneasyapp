@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { DbService } from 'src/db/db.service';
 import { Company } from 'src/company/entities/company.entity';
-import { Employee } from 'src/employee/entities';
+import { Employee, EmployeeServiceEntity } from 'src/employee/entities';
 import { Service } from 'src/service/entities';
 import { Helper } from 'src/helper';
 import { Shift } from 'src/employee/entities/shift.entity';
@@ -54,6 +54,7 @@ export class AppointmentService {
       throw new HttpException(`Service with id ${modelService.id_servicio} does not exist`, HttpStatus.NOT_FOUND);
     }
 
+
     //Debo preguntarme si la empresa actual, tiene empleados disponibles
     const modelEmployee = new Employee();
     modelEmployee.id_empresa = idCompany;
@@ -80,6 +81,18 @@ export class AppointmentService {
 
     const employeeActive = responseEmployee.filter((employee: Employee) => employee.id_empleado === createAppointmentDto.id_empleado);
     const employeeDb = new Employee(employeeActive[0]);
+
+    //El servicio existe, ahora debo verificar si ese servicio esta asignado a ese empleado
+    const modelEmployeeServiceEntity = new EmployeeServiceEntity();
+    modelEmployeeServiceEntity.id_servicio = modelService.id_servicio;
+    modelEmployeeServiceEntity.id_empleado = employeeDb.id_empleado;
+
+    const sqlEmployeeServiceEntity = this.dbService.selectOne(modelEmployeeServiceEntity, true);
+    const responseEmployeeServiceEntity = await this.dbService.executeQueryModel(sqlEmployeeServiceEntity);
+
+    if (responseEmployeeServiceEntity.length === 0) {
+      throw new HttpException(`El empleado con id ${employeeDb.id_empleado} no tiene aignado el servicio con id ${modelService.id_servicio}`, HttpStatus.BAD_REQUEST);
+    }
 
     /**
      * Debemos preguntarnos si ese empleado tiene turnos
