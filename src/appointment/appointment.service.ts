@@ -653,17 +653,14 @@ export class AppointmentService {
 
     const {
       fecha_servicio = Helper.getDateNow(),
-      dia_semana = Helper.getDayNow(),
-      hora_desde = Helper.HOUR_FROM,
-      hora_hasta = Helper.HOUR_UNTIL
     } = queryParamAppointmentGeneralDto;
 
     const modelAppointment = new Appointment();
     modelAppointment.id_empleado = idEmployee;
     modelAppointment.fecha_servicio = fecha_servicio;
-    modelAppointment.dia_semana_servicio = dia_semana;
-    modelAppointment.hora_desde_servicio = hora_desde,
-    modelAppointment.hora_hasta_servicio = hora_hasta;
+    modelAppointment.dia_semana_servicio = Helper.getDayWeek(fecha_servicio);
+    modelAppointment.hora_desde_servicio = Helper.HOUR_FROM,
+    modelAppointment.hora_hasta_servicio = Helper.HOUR_UNTIL;
 
     modelAppointment.removeNullReferences();
 
@@ -696,7 +693,6 @@ export class AppointmentService {
     ]);
 
     const response = await this.dbService.executeQueryModel(sql);
-
 
     if (response.length === 0) {
       throw new HttpException('No se encuentran registros con ese criterio de busqueda', HttpStatus.NOT_FOUND);

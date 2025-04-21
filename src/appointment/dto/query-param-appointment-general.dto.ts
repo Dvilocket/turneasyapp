@@ -4,7 +4,7 @@ import { IsDateString, IsOptional } from "class-validator";
 import { Type } from "class-transformer";
 
 export class QueryParamAppointmentGeneralDto extends PartialType(
-    OmitType(QueryParamAppointmentExtendDto, ['buscar'] as const)
+    OmitType(QueryParamAppointmentExtendDto, ['buscar', 'dia_semana', 'hora_desde', 'hora_hasta'] as const)
 ) {
     @IsOptional()
     @IsDateString({}, { message: 'El formato de la fecha "hasta" debe ser Y-m-d' })
