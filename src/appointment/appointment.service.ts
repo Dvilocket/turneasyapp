@@ -695,7 +695,7 @@ export class AppointmentService {
     const response = await this.dbService.executeQueryModel(sql);
 
     if (response.length === 0) {
-      throw new HttpException('No se encuentran registros con ese criterio de busqueda', HttpStatus.NOT_FOUND);
+      throw new HttpException('No se encuentran registros con ese criterio de busqueda', HttpStatus.NO_CONTENT);
     }
 
     return response.map((elemet: Appointment) => {
