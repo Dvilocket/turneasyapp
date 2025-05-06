@@ -17,7 +17,7 @@ export class AppointmentService {
 
   constructor(
     private readonly dbService: DbService
-  ){}
+  ) { }
 
   /**
    * Función para agendar una cita, esta funcion es de manera General
@@ -119,12 +119,12 @@ export class AppointmentService {
      * no hay necesidad de asignarlo, porque no lo tiene
      */
     const dayWeekUser = Helper.getDayWeek(createAppointmentDto.fecha_servicio);
-  
+
     const existDayWeekUser = responseShift.some((shift: Shift) => shift.dia_semana === dayWeekUser);
 
     if (!existDayWeekUser) {
       throw new HttpException(`The employee with ID ${employeeDb.id_empleado} does not have the day ${dayWeekUser} assigned in the schedule, please create that schedule for him/her.`, HttpStatus.NOT_FOUND);
-    }    
+    }
 
     //Obtenemos los turnos que tenemos en la base de datos, para ese empleado
     const shiftDb: Shift[] = responseShift.filter((shift: Shift) => shift.dia_semana === dayWeekUser);
@@ -167,7 +167,7 @@ export class AppointmentService {
      */
     if (responseAppointment.length >= 1) {
 
-      for(const element of responseAppointment) {
+      for (const element of responseAppointment) {
 
         const modelElement = new Appointment(element);
         modelElement.formatHour();
@@ -175,13 +175,20 @@ export class AppointmentService {
         const modelElementMinuteStart = Helper.convertHourToMinute(modelElement.hora_desde_servicio);
         const modelElementMinuteEnd = Helper.convertHourToMinute(modelElement.hora_hasta_servicio);
 
-        if (endMinutesSinceService >= modelElementMinuteStart && endMinutesSinceService <= modelElementMinuteEnd || endMinutesUntilService >= modelElementMinuteStart && endMinutesUntilService <= modelElementMinuteEnd) {
+        if (
+          // Caso 1: Nueva reserva comienza DENTRO de una existente
+          (endMinutesSinceService > modelElementMinuteStart && endMinutesSinceService < modelElementMinuteEnd) ||
+          // Caso 2: Nueva reserva termina DENTRO de una existente
+          (endMinutesUntilService > modelElementMinuteStart && endMinutesUntilService < modelElementMinuteEnd) ||
+          // Caso 3: Nueva reserva ENVUELVE una existente
+          (endMinutesSinceService <= modelElementMinuteStart && endMinutesUntilService >= modelElementMinuteEnd)
+        ) {
           throw new HttpException('The schedule is busy, please try another time slot', HttpStatus.CONFLICT);
         }
       }
     }
 
-    for(const shift of shiftDb) {
+    for (const shift of shiftDb) {
       const modelShiftObject = new Shift(shift);
       modelShiftObject.formatHour();
 
@@ -229,14 +236,14 @@ export class AppointmentService {
    * @returns 
    */
   public async getAppointment(queryParamAppointmentDto: QueryParamAppointmentDto, req: RequesExpressInterface) {
-    
+
     let response = null;
     let sql = null;
 
-    const {desde = Helper.getDateNow(), hasta = Helper.getDateNow()} = queryParamAppointmentDto;
+    const { desde = Helper.getDateNow(), hasta = Helper.getDateNow() } = queryParamAppointmentDto;
 
-    if(req.user.type_user === TypeUserGeneral.CLIENT) {
-      
+    if (req.user.type_user === TypeUserGeneral.CLIENT) {
+
       const modelCompany = new Company();
       modelCompany.id_usuario = req.user.id;
       modelCompany.removeNullReferences();
@@ -254,7 +261,7 @@ export class AppointmentService {
           name: 'ID_EMPRESA',
           value: response.map((element: Company) => element.id_empresa).join(','),
           type: TypeJson.STRING
-        }, 
+        },
         {
           name: "FECHA_DESDE",
           value: desde,
@@ -275,7 +282,7 @@ export class AppointmentService {
 
       const sqlCompanyGeneral = this.dbService.select(modelCompanyGeneral, true);
       response = await this.dbService.executeQueryModel(sqlCompanyGeneral);
-    
+
       sql = this.dbService.queryStringJson("selAppointmentAdmin", [
         {
           name: "FECHA_DESDE",
@@ -290,22 +297,22 @@ export class AppointmentService {
       ])
     }
     const responseAppointment = await this.dbService.executeQueryModel(sql);
-    
+
     if (responseAppointment.length === 0) {
       throw new HttpException(`The company currently has no scheduled appointments.`, HttpStatus.NOT_FOUND);
     }
 
-    const listServices: Service[]= [];
-    const listEmployees: Employee[]= [];
+    const listServices: Service[] = [];
+    const listEmployees: Employee[] = [];
 
     const createAppointment = async (idCompany: number) => {
 
       const jsonResponse = [];
 
-      const appointment: Appointment[] =  responseAppointment.filter((element: Appointment) => element.id_empresa === idCompany);    
+      const appointment: Appointment[] = responseAppointment.filter((element: Appointment) => element.id_empresa === idCompany);
 
       const addElement = (service: Service, employee: Employee, appointment: Appointment) => {
-        
+
         jsonResponse.push({
           servicio: {
             nombre_servicio: service.nombre_servicio,
@@ -332,13 +339,13 @@ export class AppointmentService {
         })
       };
 
-      for(const element of appointment) {
-        
+      for (const element of appointment) {
+
         const model = new Appointment(element);
         model.removeNullReferences();
 
         if (listServices.length === 0 && listEmployees.length === 0) {
-          
+
           let modelService = new Service();
           modelService.id_servicio = model.id_servicio;
           modelService.removeNullReferences();
@@ -348,7 +355,7 @@ export class AppointmentService {
 
           modelService = new Service(responseModelService[0]);
           modelService.removeNullReferences();
-        
+
           let modelEmployee = new Employee();
           modelEmployee.id_empleado = model.id_empleado;
           modelEmployee.removeNullReferences();
@@ -358,21 +365,21 @@ export class AppointmentService {
 
           modelEmployee = new Employee(responseModelEmployee[0])
           modelEmployee.removeNullReferences();
-        
+
           listServices.push(modelService);
           listEmployees.push(modelEmployee);
-        
+
           addElement(modelService, modelEmployee, model);
 
           continue;
 
         } else {
           const serviceInList = listServices.filter((element) => element.id_servicio === model.id_servicio);
-          
+
           let elementA = null;
 
           if (serviceInList.length === 0) {
-            
+
             elementA = new Service();
             elementA.id_servicio = model.id_servicio;
             elementA.removeNullReferences();
@@ -394,7 +401,7 @@ export class AppointmentService {
           let elementB = null;
 
           if (employeeInList.length === 0) {
-            
+
             elementB = new Employee();
             elementB.id_empleado = model.id_empleado;
             elementB.removeNullReferences();
@@ -418,7 +425,7 @@ export class AppointmentService {
 
     let responseJson = [];
 
-    for(const element of response) {
+    for (const element of response) {
 
       const model = new Company(element);
       model.removeNullReferences();
@@ -426,8 +433,8 @@ export class AppointmentService {
       model.hora_apertura = Helper.formatHour(model.hora_apertura);
       model.hora_cierre = Helper.formatHour(model.hora_cierre);
 
-      const {id_usuario, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, nombreTabla, ...result} = model;
-      
+      const { id_usuario, fecha_creacion, fecha_actualizacion, fecha_eliminacion, formato_imagen, id_imagen, nombreTabla, ...result } = model;
+
       result['citas'] = await createAppointment(model.id_empresa);
 
       responseJson.push(result);
@@ -443,10 +450,10 @@ export class AppointmentService {
    * @returns 
    */
   public async getAppointmentByEmployee(idEmployee: number, req: RequesExpressInterface, queryParamAppointmentExtendDto: QueryParamAppointmentExtendDto) {
-    
+
     let sql = null;
     if (queryParamAppointmentExtendDto.desde && queryParamAppointmentExtendDto.hasta) {
-      
+
       //Tiene el filtro de la fecha desde hasta la fecha hasta
       sql = this.dbService.queryStringJson('selAppointmentUserGeneral', [
         {
@@ -464,9 +471,9 @@ export class AppointmentService {
           value: queryParamAppointmentExtendDto.hasta,
           type: TypeJson.STRING
         }
-      ]);  
+      ]);
     } else if (queryParamAppointmentExtendDto.dia_semana) {
-      
+
       //Tiene el filtro de la semana
       const modelAppointment = new Appointment();
       modelAppointment.id_empleado = idEmployee;
@@ -479,22 +486,22 @@ export class AppointmentService {
       sql = this.dbService.queryStringJson('selAppointmentUserGeneralByHour', [
         {
           name: 'ID_EMPLEADO',
-          value : idEmployee,
+          value: idEmployee,
           type: TypeJson.NUMBER
         },
         {
           name: 'HORA_DESDE',
-          value : queryParamAppointmentExtendDto.hora_desde,
+          value: queryParamAppointmentExtendDto.hora_desde,
           type: TypeJson.STRING
         },
         {
           name: 'HORA_HASTA',
-          value : queryParamAppointmentExtendDto.hora_hasta,
+          value: queryParamAppointmentExtendDto.hora_hasta,
           type: TypeJson.STRING
         }
       ]);
 
-    } else if(queryParamAppointmentExtendDto.buscar) {
+    } else if (queryParamAppointmentExtendDto.buscar) {
       //Significa que vamos a buscar por un valor en concreto
       sql = this.dbService.queryStringJson('selAppointmentUserGeneralByValue', [
         {
@@ -508,7 +515,7 @@ export class AppointmentService {
           type: TypeJson.STRING
         }
       ]);
-    }  else {
+    } else {
       //Significa que no trae un filtro
       const modelAppointment = new Appointment();
       modelAppointment.id_empleado = idEmployee;
@@ -522,13 +529,13 @@ export class AppointmentService {
     if (response.length === 0) {
       throw new HttpException(`No se encuentra un registro con esos parametros de busqueda`, HttpStatus.NOT_FOUND);
     }
-    
+
     if (req.user.type_user === TypeUserGeneral.CLIENT) {
-      
+
       const modelCompany = new Company();
       modelCompany.id_usuario = req.user.id;
       modelCompany.removeNullReferences();
-      
+
       const sqlModelCompany = this.dbService.select(modelCompany, true);
       const responseModelCompany: Company[] = await this.dbService.executeQueryModel(sqlModelCompany);
 
@@ -536,7 +543,7 @@ export class AppointmentService {
 
       response = response.filter((element) => listIdCompany.includes(element.id_empresa));
 
-      if (response.length === 0){
+      if (response.length === 0) {
         throw new HttpException(`El empleado con id ${idEmployee} no le corresponde`, HttpStatus.NOT_FOUND);
       }
     }
@@ -548,10 +555,10 @@ export class AppointmentService {
     const responseJson = [];
     let contador = 0;
 
-    for(const register of response) {
+    for (const register of response) {
       const model = new Appointment(register);
 
-      const {nombreTabla, ...resto} = model;
+      const { nombreTabla, ...resto } = model;
 
       responseJson.push({
         ...resto,
@@ -564,7 +571,7 @@ export class AppointmentService {
       let result: Company[] | Service[] | Employee[] = listMemoryCompany.filter((element) => element.id_empresa === model.id_empresa);
 
       if (result.length === 0) {
-        
+
         const modelCompany = new Company();
         modelCompany.id_empresa = model.id_empresa;
         modelCompany.removeNullReferences();
@@ -619,7 +626,7 @@ export class AppointmentService {
         const modelEmployee = new Employee();
         modelEmployee.id_empleado = model.id_empleado;
         modelEmployee.removeNullReferences();
-        
+
         const sql = this.dbService.selectOne(modelEmployee, true);
         const response: Employee[] = await this.dbService.executeQueryModel(sql);
 
@@ -660,33 +667,33 @@ export class AppointmentService {
     modelAppointment.fecha_servicio = fecha_servicio;
     modelAppointment.dia_semana_servicio = Helper.getDayWeek(fecha_servicio);
     modelAppointment.hora_desde_servicio = Helper.HOUR_FROM,
-    modelAppointment.hora_hasta_servicio = Helper.HOUR_UNTIL;
+      modelAppointment.hora_hasta_servicio = Helper.HOUR_UNTIL;
 
     modelAppointment.removeNullReferences();
 
     const sql = this.dbService.queryStringJson('selAppointmentGeneral', [
       {
-        name : 'ID_EMPLEADO',
+        name: 'ID_EMPLEADO',
         value: modelAppointment.id_empleado,
         type: TypeJson.NUMBER
       },
       {
-        name : 'DIA_SEMANA_SERVICIO',
+        name: 'DIA_SEMANA_SERVICIO',
         value: modelAppointment.dia_semana_servicio,
         type: TypeJson.STRING
       },
       {
-        name : 'FECHA_SERVICIO',
+        name: 'FECHA_SERVICIO',
         value: modelAppointment.fecha_servicio,
         type: TypeJson.STRING
       },
       {
-        name : 'HORA_DESDE',
+        name: 'HORA_DESDE',
         value: modelAppointment.hora_desde_servicio,
         type: TypeJson.STRING
       },
       {
-        name : 'HORA_HASTA',
+        name: 'HORA_HASTA',
         value: modelAppointment.hora_hasta_servicio,
         type: TypeJson.STRING
       }
@@ -699,7 +706,7 @@ export class AppointmentService {
     }
 
     return response.map((elemet: Appointment) => {
-      const {id_empresa, id_servicio, id_empleado, id_citas, ...all} = elemet;
+      const { id_empresa, id_servicio, id_empleado, id_citas, ...all } = elemet;
       return all;
     })
   }
