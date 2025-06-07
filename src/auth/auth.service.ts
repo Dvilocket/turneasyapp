@@ -1,10 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { CreateAuthGeneralDto, CreateAuthUserDto } from './dto';
+import { CreateAuthGeneralDto, CreateAuthUserDto, QueryAuthBaseDto } from './dto';
 import { DbService } from 'src/db/db.service';
 import { JwtService } from '@nestjs/jwt';
 import { User } from './entities';
 import * as bcrypt from 'bcrypt';
-import { TypeUserGeneral } from 'src/enum';
+import { TypeAuthParameter, TypeUserGeneral } from 'src/enum';
 import { ModelCompanyTotal } from 'src/model';
 
 @Injectable()
@@ -53,8 +53,7 @@ export class AuthService {
    * @param user 
    * @returns 
    */
-  public login(user: User) {
-    
+  public login(user: User, queryAuthBaseDto : QueryAuthBaseDto) {
     const payload = {
       id: user.id_usuario,
       user: user.nombre,
@@ -63,9 +62,62 @@ export class AuthService {
       type_user: user.tipo_usuario
     };
 
-    return {
+    const filterObject = (userModel: User): User => {
+      const notProperty = ['fecha_creacion', 'fecha_actualizacion', 'fecha_eliminacion', 'nombreTabla',  'clave'];
+      for(const element of notProperty) {
+        delete userModel[element];
+      }
+      return userModel;
+    }
+
+    user = filterObject(user);
+
+    const response = {
       access_token: this.jwtService.sign(payload),
+      user: null
     };
+
+    if (Object.keys(queryAuthBaseDto).length === 0) {
+      return response;
+    }
+
+    switch(queryAuthBaseDto.parameter) {
+      case TypeAuthParameter.ALL: {
+        response.user = user;
+        break;
+      }
+      case TypeAuthParameter.ID: {
+        response.user = {
+          id_usuario: user.id_usuario
+        }
+        break;
+      }
+      case TypeAuthParameter.USER : {
+        response.user = {
+          usuario: user.usuario
+        }
+        break;
+      }
+      case TypeAuthParameter.EMAIL: {
+        response.user = {
+          correo: user.correo
+        }
+        break;
+      }
+      case TypeAuthParameter.PHONE: {
+        response.user = {
+          telefono: user.telefono
+        }
+        break;
+      }
+      case TypeAuthParameter.TYPE: {
+        response.user = {
+          tipo_usuario: user.tipo_usuario
+        }
+        break;
+      }
+    }
+    return response;
   }
 
   /**

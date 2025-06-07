@@ -1,6 +1,6 @@
-import { Controller, Post, Body} from '@nestjs/common';
+import { Controller, Post, Body, Query} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import {CreateAuthGeneralDto, CreateAuthUserDto, LoginAuthDto } from './dto';
+import {CreateAuthGeneralDto, CreateAuthUserDto, LoginAuthDto, QueryAuthBaseDto } from './dto';
 import { User } from './entities';
 import { Roles } from 'src/common/decorators';
 import { TypeUserGeneral } from 'src/enum';
@@ -16,9 +16,9 @@ export class AuthController {
    * @returns 
    */
   @Post('/login')
-  public async authLogin(@Body() loginAuthDto: LoginAuthDto) {
+  public async authLogin(@Body() loginAuthDto: LoginAuthDto, @Query() queryAuthBaseDto: QueryAuthBaseDto) {
     const response = await this.authService.validateUser(new User(loginAuthDto));
-    return this.authService.login(new User(response));
+    return this.authService.login(new User(response), queryAuthBaseDto);
   }
 
   /**
