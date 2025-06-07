@@ -23,7 +23,7 @@ export class EmployeeService {
   constructor(
     private readonly dbService: DbService,
     private readonly cloudinaryService: CloudinaryService
-  ){}
+  ) { }
 
 
   /**
@@ -33,7 +33,7 @@ export class EmployeeService {
    * @param file 
    */
   public async createEmployee(createEmployeeDto: CreateEmployeeDto, req: RequesExpressInterface, file: Express.Multer.File) {
-  
+
     const modelEmployee = new Employee(createEmployeeDto);
     modelEmployee.removeNullReferences();
 
@@ -77,7 +77,7 @@ export class EmployeeService {
         name: 'ID_USUARIO',
         type: TypeJson.NUMBER,
         value: req.user.id
-      }, 
+      },
       {
         name: 'ID_SERVICIO',
         type: TypeJson.STRING,
@@ -135,7 +135,7 @@ export class EmployeeService {
       }
 
       //Signifca que los id que me ingresa, si le pertenecen a esa empresa
-      
+
       const idCompanyUser = createEmployeeDto.id_empresa.split(',').map(Number) ?? [];
 
       if (idCompanyUser.length === 0) {
@@ -143,8 +143,8 @@ export class EmployeeService {
         throw new HttpException(`los ids ${createEmployeeDto.id_empresa} no existen`, HttpStatus.BAD_REQUEST);
       }
 
-      for(const idCompany of idCompanyUser) {
-        
+      for (const idCompany of idCompanyUser) {
+
         const modelInsertCompany = new Employee({
           ...modelEmployee
         });
@@ -167,22 +167,22 @@ export class EmployeeService {
       throw new HttpException('Sucedio un error interno registrando el empleado', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    for(const element of responseEmployeeDb) {
+    for (const element of responseEmployeeDb) {
 
       const model = new Employee(element);
 
-      if (!responseSqlServiceEmployee.some((el:Service) => model.id_empresa === el.id_empresa)) {
+      if (!responseSqlServiceEmployee.some((el: Service) => model.id_empresa === el.id_empresa)) {
         await this.dbService.rollbackTransaction();
-        throw new HttpException(`La empresa ${model.id_empresa} no cuenta con un servicio`, HttpStatus.CONFLICT);  
+        throw new HttpException(`La empresa ${model.id_empresa} no cuenta con un servicio`, HttpStatus.CONFLICT);
       }
 
-      const serviceElement = responseSqlServiceEmployee.filter((el: Service) => el.id_empresa === model.id_empresa );
+      const serviceElement = responseSqlServiceEmployee.filter((el: Service) => el.id_empresa === model.id_empresa);
 
-      for(const service of serviceElement) {
+      for (const service of serviceElement) {
         const modelService = new Service(service);
 
         const modelEmployeeServiceEntity = new EmployeeServiceEntity();
-        
+
         modelEmployeeServiceEntity.id_servicio = modelService.id_servicio;
         modelEmployeeServiceEntity.id_empleado = model.id_empleado;
 
@@ -194,7 +194,7 @@ export class EmployeeService {
     }
 
     await this.dbService.commitTransaction();
-    
+
     throw new HttpException('El empleado fue insertado correctamente', HttpStatus.OK);
   }
 
@@ -207,10 +207,10 @@ export class EmployeeService {
    * @returns 
    */
   public async editEmployee(id: number, updateEmployeeDto: UpdateEmployeeDto, req: RequesExpressInterface, file: Express.Multer.File = null) {
-    
+
     //Funcion para obtener un empleado de acuerdo a su id
     const getObjectEmployee = async (idEmployee: number): Promise<Employee> => {
-      
+
       let model = new Employee();
       model.id_empleado = idEmployee;
       model.removeNullReferences();
@@ -219,9 +219,9 @@ export class EmployeeService {
       const response = await this.dbService.executeQueryModel(sql);
 
       if (response.length > 0) {
-        model =  new Employee(response[0]);
+        model = new Employee(response[0]);
         model.removeNullReferences();
-        return  model;
+        return model;
       }
 
     }
@@ -240,7 +240,7 @@ export class EmployeeService {
           name: 'ID_USUARIO',
           value: req.user.id,
           type: TypeJson.NUMBER
-        }, 
+        },
         {
           name: 'ID_EMPLEADO',
           value: id,
@@ -249,66 +249,66 @@ export class EmployeeService {
       ]);
 
       let response = await this.dbService.executeQueryModel(sql);
-      
+
       if (response.length === 0) {
         throw new HttpException(`You can't edit the employee with ID ${id} because it does not belong`, HttpStatus.BAD_REQUEST);
       }
     }
 
-      const objectEmployee = await getObjectEmployee(id);
+    const objectEmployee = await getObjectEmployee(id);
 
-      if (updateEmployeeDto.hasOwnProperty('nombre') && updateEmployeeDto.hasOwnProperty('correo')) {
-        
-        const modelSelectEmployee = new Employee();
-        modelSelectEmployee.nombre = updateEmployeeDto.nombre;
-        modelSelectEmployee.correo = updateEmployeeDto.correo;
-        modelSelectEmployee.id_empresa = objectEmployee.id_empresa;
+    if (updateEmployeeDto.hasOwnProperty('nombre') && updateEmployeeDto.hasOwnProperty('correo')) {
 
-        modelSelectEmployee.removeNullReferences();
+      const modelSelectEmployee = new Employee();
+      modelSelectEmployee.nombre = updateEmployeeDto.nombre;
+      modelSelectEmployee.correo = updateEmployeeDto.correo;
+      modelSelectEmployee.id_empresa = objectEmployee.id_empresa;
 
-        sql = this.dbService.selectOne(modelSelectEmployee, true);
+      modelSelectEmployee.removeNullReferences();
 
-        response = await this.dbService.executeQueryModel(sql);
+      sql = this.dbService.selectOne(modelSelectEmployee, true);
 
-        if (response.length > 0) {
-          throw new HttpException(`An employee already exists with name ${modelSelectEmployee.nombre} and email ${modelSelectEmployee.correo}`, HttpStatus.BAD_REQUEST);
-        }
+      response = await this.dbService.executeQueryModel(sql);
+
+      if (response.length > 0) {
+        throw new HttpException(`An employee already exists with name ${modelSelectEmployee.nombre} and email ${modelSelectEmployee.correo}`, HttpStatus.BAD_REQUEST);
       }
+    }
 
-      const modelWhere = new Employee();
-      modelWhere.id_empleado = id;
-      modelWhere.removeNullReferences();
+    const modelWhere = new Employee();
+    modelWhere.id_empleado = id;
+    modelWhere.removeNullReferences();
 
-      const modelSet = new Employee(updateEmployeeDto);
-      modelSet.fecha_actualizacion = DbService.NOW;
+    const modelSet = new Employee(updateEmployeeDto);
+    modelSet.fecha_actualizacion = DbService.NOW;
 
-      if (file) {
+    if (file) {
 
-        await this.cloudinaryService.deleteImage(objectEmployee.id_imagen);
-        const [secureUrl, publicId, format] = await this.cloudinaryService.uploadImage(file);
+      await this.cloudinaryService.deleteImage(objectEmployee.id_imagen);
+      const [secureUrl, publicId, format] = await this.cloudinaryService.uploadImage(file);
 
-        if (!secureUrl || !publicId || !format) {
-          throw new HttpException('error, it is not possible to upload the image at this time', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        modelSet.url_imagen = secureUrl;
-        modelSet.formato_imagen = format;
-        modelSet.id_imagen = publicId;
+      if (!secureUrl || !publicId || !format) {
+        throw new HttpException('error, it is not possible to upload the image at this time', HttpStatus.INTERNAL_SERVER_ERROR);
       }
+      modelSet.url_imagen = secureUrl;
+      modelSet.formato_imagen = format;
+      modelSet.id_imagen = publicId;
+    }
 
-      modelSet.removeNullReferences();
+    modelSet.removeNullReferences();
 
-      if (!updateEmployeeDto.activo) {
-        modelSet.fecha_eliminacion = DbService.NOW;
-      } else {
-        modelSet.fecha_eliminacion = null;
-      }
+    if (!updateEmployeeDto.activo) {
+      modelSet.fecha_eliminacion = DbService.NOW;
+    } else {
+      modelSet.fecha_eliminacion = null;
+    }
 
-      sql = this.dbService.update(modelWhere, modelSet);
+    sql = this.dbService.update(modelWhere, modelSet);
 
-      await this.dbService.executeQueryModel(sql);
+    await this.dbService.executeQueryModel(sql);
 
-      throw new HttpException('The employee was successfully updated', HttpStatus.OK);
-    
+    throw new HttpException('The employee was successfully updated', HttpStatus.OK);
+
   }
 
   /**
@@ -318,7 +318,7 @@ export class EmployeeService {
    * @returns 
    */
   private async getIdCompany(idUser: number): Promise<number[]> {
-    
+
     let modelCompany = new Company();
     modelCompany.id_usuario = idUser;
     modelCompany.removeNullReferences();
@@ -329,9 +329,9 @@ export class EmployeeService {
     if (response.length === 0) {
       throw new HttpException('A company has not been created', HttpStatus.BAD_REQUEST);
     }
-    
+
     const listIds = [];
-    for(const element of response) {
+    for (const element of response) {
       modelCompany = new Company(element)
       if (modelCompany.id_empresa) {
         listIds.push(modelCompany.id_empresa);
@@ -346,14 +346,14 @@ export class EmployeeService {
    * @param req 
    * @param createEmployeeShiftDto 
    */
-  public async createShift(id: number, req: RequesExpressInterface, createEmployeeShiftDto:CreateEmployeeShiftDto) {
-    const idsCompany =  await this.getIdCompany(req.user.id);
-    
+  public async createShift(id: number, req: RequesExpressInterface, createEmployeeShiftDto: CreateEmployeeShiftDto) {
+    const idsCompany = await this.getIdCompany(req.user.id);
+
     if (!idsCompany.includes(id)) {
       throw new HttpException(`The company id ${id} is not associated with the client`, HttpStatus.BAD_REQUEST);
     }
 
-    if(!Array.isArray(createEmployeeShiftDto.turnos)) {
+    if (!Array.isArray(createEmployeeShiftDto.turnos)) {
       throw new HttpException('Error, must be an array', HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -379,11 +379,11 @@ export class EmployeeService {
      * @param shedule 
      */
     const checkOpeningTime = (shedule: any[]) => {
-      
-      for(const element1 of shedule) {
-        
-        for(const element2 of element1.horario) {
-          
+
+      for (const element1 of shedule) {
+
+        for (const element2 of element1.horario) {
+
           let hourStart = this.convertHourToMinute(element2.hora_inicio);
           let hourEnd = this.convertHourToMinute(element2.hora_fin);
 
@@ -397,7 +397,7 @@ export class EmployeeService {
 
     checkOpeningTime(createEmployeeShiftDto.turnos);
 
-    for(const element of createEmployeeShiftDto.turnos) {
+    for (const element of createEmployeeShiftDto.turnos) {
 
       if (!element.hasOwnProperty('id_empleado') || !Array.isArray(element.horario)) {
         continue;
@@ -422,7 +422,7 @@ export class EmployeeService {
       if (!model.activo) {
         throw new HttpException(`The employee id ${model.id_empleado} is not active`, HttpStatus.BAD_REQUEST);
       }
-    
+
       const modelShift = new Shift();
       modelShift.id_empleado = element.id_empleado;
       modelShift.removeNullReferences();
@@ -433,8 +433,8 @@ export class EmployeeService {
       if (response.length > 0) {
         const daysWeekInDb: TypeDayWeek[] = this.getDaysWeekInDb(response);
         let datainsert = this.doFilterSchedule(daysWeekInDb, element.horario, response);
-      
-        const newData = response.map((element:any) => {
+
+        const newData = response.map((element: any) => {
           const model = new Shift(element);
           model.removeNullReferences();
           model.formatHour();
@@ -451,21 +451,21 @@ export class EmployeeService {
 
       this.dbService.beginTransaction();
 
-        for(const schedule of element.horario) {
-          const modelInsert = new Shift(
-            {
-              ...schedule,
-              id_empleado: element.id_empleado
-            }
-          );
-          modelInsert.removeNullReferences();
+      for (const schedule of element.horario) {
+        const modelInsert = new Shift(
+          {
+            ...schedule,
+            id_empleado: element.id_empleado
+          }
+        );
+        modelInsert.removeNullReferences();
 
-          sql = this.dbService.insertOnConflict(modelInsert, true);
+        sql = this.dbService.insertOnConflict(modelInsert, true);
 
-          await this.dbService.executeQueryInTransaction(sql);
+        await this.dbService.executeQueryInTransaction(sql);
 
-        }
-        this.dbService.commitTransaction();
+      }
+      this.dbService.commitTransaction();
     }
     throw new HttpException('records were entered correctly', HttpStatus.OK);
   }
@@ -478,7 +478,7 @@ export class EmployeeService {
    */
   private getDaysWeekInDb(response: any[]): TypeDayWeek[] {
     const list = [];
-    for(const element of response) {
+    for (const element of response) {
       const model = new Shift(element);
       model.removeNullReferences();
       if (!list.includes(model.dia_semana)) {
@@ -500,7 +500,7 @@ export class EmployeeService {
     const allowedList = [];
     const repeatList = [];
 
-    for(const element of scheduleClient) {
+    for (const element of scheduleClient) {
       if (!weekInDb.includes(element.dia_semana)) {
         allowedList.push(element);
         continue;
@@ -510,18 +510,18 @@ export class EmployeeService {
 
     const removeRepeat = () => {
 
-      for(const day of weekInDb) {
+      for (const day of weekInDb) {
 
         let elementDb = [];
         let elementClient = [];
 
-        for(const element of scheduleClient) {
+        for (const element of scheduleClient) {
           if (element.dia_semana === day) {
             elementClient.push(element);
           }
         }
 
-        for(const element of scheduleDb) {
+        for (const element of scheduleDb) {
           const model = new Shift(element);
           model.removeNullReferences();
           model.formatHour();
@@ -534,11 +534,11 @@ export class EmployeeService {
             })
           }
         }
-        
+
         if (elementDb.length > 0 && elementClient.length > 0) {
-          for(const elementA of elementClient) {
+          for (const elementA of elementClient) {
             let exists = false;
-            for(const elementB of elementDb) {
+            for (const elementB of elementDb) {
               if (elementA.dia_semana === elementB.dia_semana && elementA.hora_inicio === elementB.hora_inicio && elementA.hora_fin === elementB.hora_fin) {
                 exists = true;
                 break;
@@ -555,7 +555,7 @@ export class EmployeeService {
     if (repeatList.length > 0) {
       removeRepeat();
     }
-    
+
     if (allowedList.length === 0) {
       throw new HttpException('These schedules are already in the database', HttpStatus.BAD_REQUEST);
     }
@@ -570,7 +570,7 @@ export class EmployeeService {
    * @param schedule 
    */
   private dataIsSwapped(schedule: any[]) {
-    for(const dayWeek of TypeDayWeekListGeneral) {
+    for (const dayWeek of TypeDayWeekListGeneral) {
       const list = schedule.filter((element) => element.dia_semana === dayWeek);
       if (list.length >= 2 && this.thereIsOverLap(list)) {
         throw new HttpException('It is not possible to enter the schedules because a schedule is overlapping with one in the database, please check the schedules', HttpStatus.BAD_REQUEST);
@@ -584,8 +584,8 @@ export class EmployeeService {
    * @returns 
    */
   private thereIsOverLap(schedules: any[]): boolean {
-    for(let i = 0; i < schedules.length; i++) {
-      for(let j = i + 1; j < schedules.length; j++) {
+    for (let i = 0; i < schedules.length; i++) {
+      for (let j = i + 1; j < schedules.length; j++) {
         const inicio1 = this.convertHourToMinute(schedules[i].hora_inicio);
         const fin1 = this.convertHourToMinute(schedules[i].hora_fin);
         const inicio2 = this.convertHourToMinute(schedules[j].hora_inicio);
@@ -605,8 +605,8 @@ export class EmployeeService {
    * @returns 
    */
   private convertHourToMinute(hour: string): number {
-      const [h, m] = hour.split(':').map(Number);
-      return h * 60 + m;
+    const [h, m] = hour.split(':').map(Number);
+    return h * 60 + m;
   }
 
   /**
@@ -621,7 +621,7 @@ export class EmployeeService {
 
     let sql = '';
     if (req.user.type_user === TypeUserGeneral.CLIENT) {
-      const idsCompany =  await this.getIdCompany(req.user.id);
+      const idsCompany = await this.getIdCompany(req.user.id);
 
       sql = this.dbService.queryStringJson('selShift', [
         {
@@ -644,7 +644,7 @@ export class EmployeeService {
     const responseJson: ShiftJsonInterface[] = [];
 
     const existsCompanyJson = (id: number) => {
-      for(const element of responseJson) {
+      for (const element of responseJson) {
         if (element.id_empresa === id) {
           return true;
         }
@@ -658,7 +658,7 @@ export class EmployeeService {
           id_empresa: element.id_empresa,
           nombre: element.nombre,
           direccion: element.direccion,
-          empleados : [
+          empleados: [
             {
               id_empleado: element.id_empleado,
               nombre_empleado: element.nombre_empleado,
@@ -680,7 +680,7 @@ export class EmployeeService {
     }
 
     const getCompanyByIdJson = (id: number) => {
-      for(const element of responseJson) {
+      for (const element of responseJson) {
         if (element.id_empresa === id) {
           return element;
         }
@@ -689,21 +689,21 @@ export class EmployeeService {
 
     const doProccessJson = (element: ResponseShiftJsonInterface) => {
       const elementJson = getCompanyByIdJson(element.id_empresa);
-      for(const employee of elementJson.empleados) {
+      for (const employee of elementJson.empleados) {
         if (employee.id_empleado === element.id_empleado) {
-            employee.horarios.push(
-              {
-                dia_semana: element.dia_semana,
-                hora_inicio: element.hora_inicio,
-                hora_fin: element.hora_fin,
-                fecha_creacion: element.fecha_creacion
-              }
-            )
+          employee.horarios.push(
+            {
+              dia_semana: element.dia_semana,
+              hora_inicio: element.hora_inicio,
+              hora_fin: element.hora_fin,
+              fecha_creacion: element.fecha_creacion
+            }
+          )
           return;
         }
       }
       elementJson.empleados.push({
-        id_empleado : element.id_empleado,
+        id_empleado: element.id_empleado,
         nombre_empleado: element.nombre_empleado,
         correo_empleado: element.correo_empleado,
         telefono_empleado: element.telefono_empleado,
@@ -719,7 +719,7 @@ export class EmployeeService {
       })
     }
 
-    for(const element of response) {
+    for (const element of response) {
       if (responseJson.length === 0) {
         addCompanyJson(element);
       } else {
@@ -749,11 +749,11 @@ export class EmployeeService {
     const response = await this.dbService.executeQueryModel(sql);
 
     if (response.length === 0) {
-      throw new HttpException( `Empleado con id ${idEmployee} no encontrado`, HttpStatus.NOT_FOUND);
+      throw new HttpException(`Empleado con id ${idEmployee} no encontrado`, HttpStatus.NOT_FOUND);
     }
 
     return response.map((element: Shift) => {
-      const {id_turno, fecha_creacion, fecha_actualizacion, fecha_eliminacion, ...all} = element;
+      const { id_turno, fecha_creacion, fecha_actualizacion, fecha_eliminacion, ...all } = element;
       return all;
     });
   }
@@ -766,7 +766,7 @@ export class EmployeeService {
    * @returns 
    */
   public async editShift(idShift: number, req: RequesExpressInterface, updateShiftDto: UpdateShiftDto) {
-    
+
     const modelShift = new Shift();
     modelShift.id_turno = idShift;
     modelShift.removeNullReferences();
@@ -777,11 +777,11 @@ export class EmployeeService {
     if (response.length === 0) {
       throw new HttpException(`No existe un registro con id ${idShift}`, HttpStatus.NOT_FOUND);
     }
-    
+
     const modelResponse = new Shift(response[0]);
 
     if (req.user.type_user === TypeUserGeneral.CLIENT) {
-      
+
       const modelEmployee = new Employee();
       modelEmployee.id_empresa = req.user.id;
       modelEmployee.removeNullReferences();
@@ -789,9 +789,9 @@ export class EmployeeService {
       const sql = this.dbService.select(modelEmployee, true);
       const response = await this.dbService.executeQueryModel(sql);
 
-      const listId = response.map((element:Employee) => element.id_empleado);
+      const listId = response.map((element: Employee) => element.id_empleado);
 
-      if (!listId.some((element:number) => element === modelResponse.id_empleado)) {
+      if (!listId.some((element: number) => element === modelResponse.id_empleado)) {
         throw new HttpException('No tienes permiso para editar ese registro', HttpStatus.UNAUTHORIZED);
       }
     }
@@ -812,52 +812,52 @@ export class EmployeeService {
     const sqlShift = this.dbService.queryStringJson('selAvailableShift', [
       {
         name: 'ID_EMPLEADO',
-        type : TypeJson.NUMBER,
+        type: TypeJson.NUMBER,
         value: modelResponse.id_empleado
       },
       {
         name: 'DIA_SEMANA',
-        type : TypeJson.STRING,
+        type: TypeJson.STRING,
         value: modelResponse.dia_semana
       },
       {
         name: 'ID_TURNO',
-        type : TypeJson.NUMBER,
+        type: TypeJson.NUMBER,
         value: modelResponse.id_turno
       }
     ]);
 
     const responseShift = await this.dbService.executeQueryModel(sqlShift);
 
-    if (responseShift.length !== 0) { 
+    if (responseShift.length !== 0) {
 
       const hourToMinuteStart = Helper.convertHourToMinute(updateShiftDto.horario.hora_inicio);
       const hourToMinuteEnd = Helper.convertHourToMinute(updateShiftDto.horario.hora_fin);
 
-      for(const element of responseShift) {
-        
+      for (const element of responseShift) {
+
         const model = new Shift(element);
         model.removeNullReferences();
 
-        const startExisting  = Helper.convertHourToMinute(model.hora_inicio);
-        const endExisting  = Helper.convertHourToMinute(model.hora_fin);
+        const startExisting = Helper.convertHourToMinute(model.hora_inicio);
+        const endExisting = Helper.convertHourToMinute(model.hora_fin);
 
         if (!(hourToMinuteEnd <= startExisting || hourToMinuteStart >= endExisting)) {
           throw new HttpException(`Conflicto con el horario con id ${model.id_turno}`, HttpStatus.CONFLICT);
-        } 
+        }
       }
     }
 
     const modelWhere = new Shift();
     modelWhere.id_turno = modelResponse.id_turno;
     modelWhere.removeNullReferences();
-      
+
     const modelSet = new Shift();
     modelSet.hora_inicio = updateShiftDto.horario.hora_inicio;
     modelSet.hora_fin = updateShiftDto.horario.hora_fin;
     modelSet.fecha_actualizacion = DbService.NOW;
     modelSet.removeNullReferences();
-      
+
     const sqlUpdate = this.dbService.update(modelWhere, modelSet);
 
     await this.dbService.executeQueryModel(sqlUpdate);
@@ -873,7 +873,7 @@ export class EmployeeService {
    * @returns 
    */
   public async getEmployeeByService(idService: number) {
-    
+
     const modelEmployeeServiceEntity = new EmployeeServiceEntity();
     modelEmployeeServiceEntity.id_servicio = idService;
     modelEmployeeServiceEntity.removeNullReferences();
@@ -886,7 +886,7 @@ export class EmployeeService {
     }
 
     const getInfoEmployee = async (idEmployee: number) => {
-      
+
       const model = new Employee();
       model.id_empleado = idEmployee;
       model.removeNullReferences();
@@ -903,13 +903,13 @@ export class EmployeeService {
         url_imagen: element.url_imagen
       }));
     };
-    
-    return  await Promise.all(
+
+    return await Promise.all(
       response.map(async (element: EmployeeServiceEntity) => ({
         ...element,
         informacion_empleado: await getInfoEmployee(element.id_empleado)
       }))
     );
-    
+
   }
 }
