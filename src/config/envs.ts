@@ -23,6 +23,7 @@ interface EnvVars {
     BASE_URL: string;
     RESEND_EMAIL_API_KEY: string;
     DOMAIN_RESEND_EMAIL: string;
+    PROPERTIES_PASSWORD: string;
 }
 
 const envsSchema = joi.object({
@@ -46,7 +47,8 @@ const envsSchema = joi.object({
     DAYS_ALLOWED_ON_APPOINTMENT: joi.string().required(),
     BASE_URL: joi.string().required(),
     RESEND_EMAIL_API_KEY: joi.string().required(),
-    DOMAIN_RESEND_EMAIL: joi.string().required()
+    DOMAIN_RESEND_EMAIL: joi.string().required(),
+    PROPERTIES_PASSWORD: joi.string().required()
 }).unknown(true);
 
 const {error, value} = envsSchema.validate({
@@ -80,5 +82,6 @@ export const envs = {
     days_allowed_on_appointment: envVars.DAYS_ALLOWED_ON_APPOINTMENT,
     base_url: envVars.BASE_URL,
     resend_email_api_key: envVars.RESEND_EMAIL_API_KEY,
-    domain_resend_email: envVars.DOMAIN_RESEND_EMAIL
+    domain_resend_email: envVars.DOMAIN_RESEND_EMAIL,
+    properties_password: envVars.PROPERTIES_PASSWORD
 };

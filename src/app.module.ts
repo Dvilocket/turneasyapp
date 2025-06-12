@@ -9,8 +9,9 @@ import { AppointmentModule } from './appointment/appointment.module';
 import { CronModule } from './cron/cron.module';
 import { EmailService } from './email/email.service';
 import { EmailModule } from './email/email.module';
+import { PropertiesModule } from './properties/properties.module';
 @Module({
-  imports: [AuthModule, CompanyModule, CloudinaryModule, ServiceModule, EmployeeModule, AppointmentModule, CronModule, EmailModule],
+  imports: [AuthModule, CompanyModule, CloudinaryModule, ServiceModule, EmployeeModule, AppointmentModule, CronModule, EmailModule, PropertiesModule],
   controllers: [],
   providers: [DbService, EmailService],
 })

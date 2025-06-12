@@ -3,6 +3,7 @@ import { extname, join } from "path";
 import {TypeDayWeekListGeneral } from "src/enum";
 
 import * as fs from 'fs';
+import * as bcrypt from 'bcrypt';
 
 export class Helper {
     
@@ -216,5 +217,24 @@ export class Helper {
         });
         return htmlContent;
     }
-    
+
+    /**
+     * Funcion para hashear una clave
+     * @param password 
+     * @returns 
+     */
+    static async hashPassword(password: string): Promise<string> {
+        const SALT_ROUNDS = 10;
+        return await bcrypt.hash(password, SALT_ROUNDS);
+    }
+
+    /**
+     * Funcion para comparar si la clave hassheada es la misma
+     * @param password 
+     * @param hashedPassword 
+     * @returns 
+     */
+    static async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+        return await bcrypt.compare(password, hashedPassword);
+    }
 };
